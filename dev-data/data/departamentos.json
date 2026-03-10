@@ -1,0 +1,454 @@
+[
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf366",
+    "nome": "Produção",
+    "descricao": "Responsável pela fabricação e engarrafamento de bebidas",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf366",
+    "nome": "Logística e Distribuição",
+    "descricao": "Gerencia o transporte e distribuição dos produtos",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf366",
+    "nome": "Vendas e Marketing",
+    "descricao": "Responsável pelas vendas e estratégias de marketing",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf366",
+    "nome": "Qualidade e P&D",
+    "descricao": "Controle de qualidade e desenvolvimento de novos produtos",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf367",
+    "nome": "Engenharia de Rede",
+    "descricao": "Manutenção e expansão da infraestrutura de telecomunicações",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf367",
+    "nome": "Produtos Digitais",
+    "descricao": "Desenvolvimento de serviços e produtos digitais",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf367",
+    "nome": "Atendimento ao Cliente",
+    "descricao": "Suporte e atendimento aos clientes",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf367",
+    "nome": "Vendas Corporativas",
+    "descricao": "Gestão de contas e vendas para empresas",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf368",
+    "nome": "Banca de Retalho",
+    "descricao": "Serviços bancários para clientes individuais",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf368",
+    "nome": "Banca Corporativa",
+    "descricao": "Serviços para empresas e grandes clientes",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf368",
+    "nome": "Tecnologia e Inovação",
+    "descricao": "Desenvolvimento de soluções digitais bancárias",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf368",
+    "nome": "Gestão de Risco",
+    "descricao": "Análise e gestão de riscos financeiros",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf369",
+    "nome": "Geração de Energia",
+    "descricao": "Operação e manutenção de centrais elétricas",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf369",
+    "nome": "Transmissão",
+    "descricao": "Gestão da rede de transmissão de energia",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf369",
+    "nome": "Distribuição",
+    "descricao": "Distribuição de energia aos consumidores",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf369",
+    "nome": "Comercial e Faturamento",
+    "descricao": "Gestão de clientes e faturamento",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36a",
+    "nome": "Infraestrutura de Telecom",
+    "descricao": "Manutenção da rede de telecomunicações fixa",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36a",
+    "nome": "Internet Corporativa",
+    "descricao": "Serviços de internet para empresas",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36a",
+    "nome": "Atendimento Técnico",
+    "descricao": "Suporte técnico aos clientes",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36b",
+    "nome": "Operações de Postos",
+    "descricao": "Gestão da rede de postos de combustível",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36b",
+    "nome": "Logística de Combustíveis",
+    "descricao": "Transporte e armazenamento de combustíveis",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36b",
+    "nome": "Loja de Conveniência",
+    "descricao": "Gestão das lojas de conveniência nos postos",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36c",
+    "nome": "Private Banking",
+    "descricao": "Serviços para clientes de alto patrimônio",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36c",
+    "nome": "Corporate Banking",
+    "descricao": "Soluções financeiras para grandes empresas",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36c",
+    "nome": "Investment Banking",
+    "descricao": "Serviços de investimento e mercados de capitais",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36d",
+    "nome": "Rede Móvel",
+    "descricao": "Operação e manutenção da rede móvel",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36d",
+    "nome": "Serviços de Valor Adicionado",
+    "descricao": "Desenvolvimento de serviços móveis",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36d",
+    "nome": "Recargas e Canais",
+    "descricao": "Gestão de canais de recarga e distribuição",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36e",
+    "nome": "Operações Portuárias",
+    "descricao": "Gestão das operações nos portos",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36e",
+    "nome": "Transporte Ferroviário",
+    "descricao": "Operação da rede ferroviária",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36e",
+    "nome": "Logística e Carga",
+    "descricao": "Gestão de carga e logística",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36f",
+    "nome": "Operações Aeroportuárias",
+    "descricao": "Gestão das operações nos aeroportos",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36f",
+    "nome": "Segurança Aeroportuária",
+    "descricao": "Segurança e controle nos aeroportos",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36f",
+    "nome": "Manutenção de Infraestrutura",
+    "descricao": "Manutenção das instalações aeroportuárias",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf370",
+    "nome": "Operação da Barragem",
+    "descricao": "Operação e manutenção da barragem",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf370",
+    "nome": "Geração Hidroelétrica",
+    "descricao": "Produção de energia elétrica",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf370",
+    "nome": "Segurança de Barragem",
+    "descricao": "Monitoramento e segurança da barragem",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf371",
+    "nome": "Crédito e Financiamento",
+    "descricao": "Análise e concessão de crédito",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf371",
+    "nome": "Câmbio e Comércio Internacional",
+    "descricao": "Operações de câmbio e comércio exterior",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf371",
+    "nome": "Private Banking",
+    "descricao": "Gestão de patrimônio",
+    "responsavel_id": null,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf372",
+    "nome": "Exploração de Gás",
+    "descricao": "Exploração e produção de gás natural",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf372",
+    "nome": "Participações e Parcerias",
+    "descricao": "Gestão de participações em projetos",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf372",
+    "nome": "Energias Renováveis",
+    "descricao": "Desenvolvimento de projetos de energia limpa",
+    "responsavel_id": null,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf373",
+    "nome": "Produção de Cimento",
+    "descricao": "Fabricação de cimento",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf373",
+    "nome": "Exploração de Calcário",
+    "descricao": "Mineração de calcário",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf373",
+    "nome": "Distribuição e Vendas",
+    "descricao": "Vendas e distribuição de cimento",
+    "responsavel_id": null,
+    "ativo": true
+  },
+
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf374",
+    "nome": "Fundição de Alumínio",
+    "descricao": "Produção de alumínio",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf374",
+    "nome": "Manutenção Industrial",
+    "descricao": "Manutenção de equipamentos industriais",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf374",
+    "nome": "Segurança e Meio Ambiente",
+    "descricao": "Gestão de segurança e sustentabilidade",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf375",
+    "nome": "Exploração de Gás",
+    "descricao": "Exploração de gás natural em Inhambane",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf375",
+    "nome": "Processamento de Gás",
+    "descricao": "Processamento e tratamento de gás",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf375",
+    "nome": "Comercialização",
+    "descricao": "Vendas e distribuição de gás",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf376",
+    "nome": "Mineração de Areias Pesadas",
+    "descricao": "Extra��ão de minerais pesados",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf376",
+    "nome": "Processamento Mineral",
+    "descricao": "Beneficiamento de minérios",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf376",
+    "nome": "Logística Portuária",
+    "descricao": "Escoamento da produção",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf377",
+    "nome": "Mineração de Carvão",
+    "descricao": "Extra��ão de carvão mineral em Moatize",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf377",
+    "nome": "Logística Ferroviária",
+    "descricao": "Transporte de carvão via ferrovia",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf377",
+    "nome": "Terminal Portuário",
+    "descricao": "Operações no porto de Nacala",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf378",
+    "nome": "Exploração Offshore",
+    "descricao": "Exploração de gás na bacia do Rovuma",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf378",
+    "nome": "Engenharia de Reservatórios",
+    "descricao": "Gestão de reservatórios de gás",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf378",
+    "nome": "Licenciamento Ambiental",
+    "descricao": "Gestão ambiental e licenciamento",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf379",
+    "nome": "Construção Civil",
+    "descricao": "Projetos de construção",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf379",
+    "nome": "Imobiliária",
+    "descricao": "Desenvolvimento imobiliário",
+    "responsavel_id": null,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf379",
+    "nome": "Hotéis e Turismo",
+    "descricao": "Gestão hoteleira",
+    "responsavel_id": null,
+    "ativo": true
+  }
+]

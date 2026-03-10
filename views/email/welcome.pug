@@ -1,0 +1,17 @@
+extends baseEmail
+
+block content
+  p Olá #{firstName},
+  p Bem-vindo(a) à PeopleCore, estamos felizes em tê-lo(a) conosco 🎉🙏
+  p Somos todos uma grande família aqui, então não se esqueça de enviar sua foto de perfil para que possamos te conhecer um pouco melhor!
+  table.btn.btn-primary(role='presentation', border='0', cellpadding='0', cellspacing='0')
+    tbody
+      tr
+        td(align='left')
+          table(role='presentation', border='0', cellpadding='0', cellspacing='0')
+            tbody
+              tr
+                td
+                  a(href=`${url}`, target='_blank') Upload user photo
+  p Se precisar de ajuda para reservar seu próximo passeio, não hesite em me contatar!
+  p - Alberto Dgedge, CEO

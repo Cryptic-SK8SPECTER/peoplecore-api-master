@@ -1,0 +1,1129 @@
+[
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf366",
+    "departamento_id": "69ae720ab75c98fc9aa3eb3c",
+    "titulo": "Operador de Produção",
+    "nivel": "Junior",
+    "salario_base": 25000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf366",
+    "departamento_id": "69ae720ab75c98fc9aa3eb3c",
+    "titulo": "Supervisor de Produção",
+    "nivel": "Pleno",
+    "salario_base": 45000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf366",
+    "departamento_id": "69ae720ab75c98fc9aa3eb3c",
+    "titulo": "Gerente de Produção",
+    "nivel": "Senior",
+    "salario_base": 80000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf366",
+    "departamento_id": "69ae720ab75c98fc9aa3eb3d",
+    "titulo": "Auxiliar de Logística",
+    "nivel": "Junior",
+    "salario_base": 22000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf366",
+    "departamento_id": "69ae720ab75c98fc9aa3eb3d",
+    "titulo": "Coordenador de Distribuição",
+    "nivel": "Pleno",
+    "salario_base": 42000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf366",
+    "departamento_id": "69ae720ab75c98fc9aa3eb3e",
+    "titulo": "Assistente de Marketing",
+    "nivel": "Estagiário",
+    "salario_base": 15000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf366",
+    "departamento_id": "69ae720ab75c98fc9aa3eb3e",
+    "titulo": "Analista de Vendas",
+    "nivel": "Pleno",
+    "salario_base": 38000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf366",
+    "departamento_id": "69ae720ab75c98fc9aa3eb3e",
+    "titulo": "Gerente de Marketing",
+    "nivel": "Senior",
+    "salario_base": 75000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf366",
+    "departamento_id": "69ae720ab75c98fc9aa3eb3f",
+    "titulo": "Técnico de Qualidade",
+    "nivel": "Junior",
+    "salario_base": 28000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf366",
+    "departamento_id": "69ae720ab75c98fc9aa3eb3f",
+    "titulo": "Engenheiro de Alimentos",
+    "nivel": "Senior",
+    "salario_base": 65000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf367",
+    "departamento_id": "69ae720ab75c98fc9aa3eb40",
+    "titulo": "Técnico de Rede",
+    "nivel": "Junior",
+    "salario_base": 30000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf367",
+    "departamento_id": "69ae720ab75c98fc9aa3eb40",
+    "titulo": "Engenheiro de Rede",
+    "nivel": "Pleno",
+    "salario_base": 55000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf367",
+    "departamento_id": "69ae720ab75c98fc9aa3eb40",
+    "titulo": "Arquiteto de Rede",
+    "nivel": "Senior",
+    "salario_base": 90000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf367",
+    "departamento_id": "69ae720ab75c98fc9aa3eb41",
+    "titulo": "Desenvolvedor Mobile",
+    "nivel": "Junior",
+    "salario_base": 40000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf367",
+    "departamento_id": "69ae720ab75c98fc9aa3eb41",
+    "titulo": "UX Designer",
+    "nivel": "Pleno",
+    "salario_base": 48000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf367",
+    "departamento_id": "69ae720ab75c98fc9aa3eb41",
+    "titulo": "Gerente de Produto",
+    "nivel": "Senior",
+    "salario_base": 85000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf367",
+    "departamento_id": "69ae720ab75c98fc9aa3eb42",
+    "titulo": "Assistente de Call Center",
+    "nivel": "Junior",
+    "salario_base": 18000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf367",
+    "departamento_id": "69ae720ab75c98fc9aa3eb42",
+    "titulo": "Supervisor de Atendimento",
+    "nivel": "Pleno",
+    "salario_base": 35000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf367",
+    "departamento_id": "69ae720ab75c98fc9aa3eb43",
+    "titulo": "Consultor de Vendas",
+    "nivel": "Pleno",
+    "salario_base": 40000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf367",
+    "departamento_id": "69ae720ab75c98fc9aa3eb43",
+    "titulo": "Gerente de Contas",
+    "nivel": "Senior",
+    "salario_base": 70000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf368",
+    "departamento_id": "69ae720ab75c98fc9aa3eb44",
+    "titulo": "Caixa Bancário",
+    "nivel": "Junior",
+    "salario_base": 22000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf368",
+    "departamento_id": "69ae720ab75c98fc9aa3eb44",
+    "titulo": "Gerente de Relacionamento",
+    "nivel": "Pleno",
+    "salario_base": 45000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf368",
+    "departamento_id": "69ae720ab75c98fc9aa3eb45",
+    "titulo": "Analista Corporativo",
+    "nivel": "Pleno",
+    "salario_base": 50000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf368",
+    "departamento_id": "69ae720ab75c98fc9aa3eb45",
+    "titulo": "Gerente Corporativo",
+    "nivel": "Senior",
+    "salario_base": 85000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf368",
+    "departamento_id": "69ae720ab75c98fc9aa3eb46",
+    "titulo": "Desenvolvedor Backend",
+    "nivel": "Pleno",
+    "salario_base": 52000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf368",
+    "departamento_id": "69ae720ab75c98fc9aa3eb46",
+    "titulo": "Arquiteto de Soluções",
+    "nivel": "Senior",
+    "salario_base": 95000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf368",
+    "departamento_id": "69ae720ab75c98fc9aa3eb47",
+    "titulo": "Analista de Risco",
+    "nivel": "Pleno",
+    "salario_base": 48000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf368",
+    "departamento_id": "69ae720ab75c98fc9aa3eb47",
+    "titulo": "Gerente de Compliance",
+    "nivel": "Senior",
+    "salario_base": 88000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf369",
+    "departamento_id": "69ae720ab75c98fc9aa3eb48",
+    "titulo": "Operador de Usina",
+    "nivel": "Junior",
+    "salario_base": 28000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf369",
+    "departamento_id": "69ae720ab75c98fc9aa3eb48",
+    "titulo": "Técnico de Manutenção",
+    "nivel": "Pleno",
+    "salario_base": 42000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf369",
+    "departamento_id": "69ae720ab75c98fc9aa3eb48",
+    "titulo": "Engenheiro de Geração",
+    "nivel": "Senior",
+    "salario_base": 75000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf369",
+    "departamento_id": "69ae720ab75c98fc9aa3eb49",
+    "titulo": "Técnico de Linhas",
+    "nivel": "Junior",
+    "salario_base": 26000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf369",
+    "departamento_id": "69ae720ab75c98fc9aa3eb49",
+    "titulo": "Supervisor de Transmissão",
+    "nivel": "Pleno",
+    "salario_base": 48000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf369",
+    "departamento_id": "69ae720ab75c98fc9aa3eb4a",
+    "titulo": "Eletricista",
+    "nivel": "Junior",
+    "salario_base": 24000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf369",
+    "departamento_id": "69ae720ab75c98fc9aa3eb4a",
+    "titulo": "Coordenador de Distribuição",
+    "nivel": "Pleno",
+    "salario_base": 45000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf369",
+    "departamento_id": "69ae720ab75c98fc9aa3eb4b",
+    "titulo": "Analista de Faturamento",
+    "nivel": "Junior",
+    "salario_base": 28000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf369",
+    "departamento_id": "69ae720ab75c98fc9aa3eb4b",
+    "titulo": "Gerente Comercial",
+    "nivel": "Senior",
+    "salario_base": 70000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36a",
+    "departamento_id": "69ae720ab75c98fc9aa3eb4c",
+    "titulo": "Técnico de Campo",
+    "nivel": "Junior",
+    "salario_base": 25000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36a",
+    "departamento_id": "69ae720ab75c98fc9aa3eb4c",
+    "titulo": "Engenheiro de Telecom",
+    "nivel": "Pleno",
+    "salario_base": 52000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36a",
+    "departamento_id": "69ae720ab75c98fc9aa3eb4d",
+    "titulo": "Analista de Redes",
+    "nivel": "Pleno",
+    "salario_base": 48000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36a",
+    "departamento_id": "69ae720ab75c98fc9aa3eb4d",
+    "titulo": "Especialista em Segurança",
+    "nivel": "Senior",
+    "salario_base": 82000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36a",
+    "departamento_id": "69ae720ab75c98fc9aa3eb4e",
+    "titulo": "Técnico de Suporte",
+    "nivel": "Junior",
+    "salario_base": 22000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36a",
+    "departamento_id": "69ae720ab75c98fc9aa3eb4e",
+    "titulo": "Coordenador de Suporte",
+    "nivel": "Pleno",
+    "salario_base": 42000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36b",
+    "departamento_id": "69ae720ab75c98fc9aa3eb4f",
+    "titulo": "Frentista",
+    "nivel": "Junior",
+    "salario_base": 18000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36b",
+    "departamento_id": "69ae720ab75c98fc9aa3eb4f",
+    "titulo": "Gerente de Posto",
+    "nivel": "Pleno",
+    "salario_base": 35000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36b",
+    "departamento_id": "69ae720ab75c98fc9aa3eb50",
+    "titulo": "Motorista de Tanque",
+    "nivel": "Pleno",
+    "salario_base": 28000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36b",
+    "departamento_id": "69ae720ab75c98fc9aa3eb50",
+    "titulo": "Coordenador de Logística",
+    "nivel": "Senior",
+    "salario_base": 52000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36b",
+    "departamento_id": "69ae720ab75c98fc9aa3eb51",
+    "titulo": "Operador de Loja",
+    "nivel": "Junior",
+    "salario_base": 16000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36b",
+    "departamento_id": "69ae720ab75c98fc9aa3eb51",
+    "titulo": "Supervisor de Loja",
+    "nivel": "Pleno",
+    "salario_base": 30000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36c",
+    "departamento_id": "69ae720ab75c98fc9aa3eb52",
+    "titulo": "Analista Private",
+    "nivel": "Pleno",
+    "salario_base": 55000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36c",
+    "departamento_id": "69ae720ab75c98fc9aa3eb52",
+    "titulo": "Gerente Private",
+    "nivel": "Senior",
+    "salario_base": 95000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36c",
+    "departamento_id": "69ae720ab75c98fc9aa3eb53",
+    "titulo": "Analista Corporate",
+    "nivel": "Pleno",
+    "salario_base": 52000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36c",
+    "departamento_id": "69ae720ab75c98fc9aa3eb53",
+    "titulo": "Diretor de Contas",
+    "nivel": "Senior",
+    "salario_base": 110000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36c",
+    "departamento_id": "69ae720ab75c98fc9aa3eb54",
+    "titulo": "Analista de Investimentos",
+    "nivel": "Pleno",
+    "salario_base": 60000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36c",
+    "departamento_id": "69ae720ab75c98fc9aa3eb54",
+    "titulo": "Associate",
+    "nivel": "Senior",
+    "salario_base": 120000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36d",
+    "departamento_id": "69ae720ab75c98fc9aa3eb55",
+    "titulo": "Técnico de Rede Móvel",
+    "nivel": "Junior",
+    "salario_base": 28000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36d",
+    "departamento_id": "69ae720ab75c98fc9aa3eb55",
+    "titulo": "Engenheiro de Rádio Frequência",
+    "nivel": "Pleno",
+    "salario_base": 52000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36d",
+    "departamento_id": "69ae720ab75c98fc9aa3eb56",
+    "titulo": "Analista de Serviços",
+    "nivel": "Pleno",
+    "salario_base": 42000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36d",
+    "departamento_id": "69ae720ab75c98fc9aa3eb56",
+    "titulo": "Gerente de Produtos SVA",
+    "nivel": "Senior",
+    "salario_base": 72000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36d",
+    "departamento_id": "69ae720ab75c98fc9aa3eb57",
+    "titulo": "Analista de Canais",
+    "nivel": "Junior",
+    "salario_base": 26000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36d",
+    "departamento_id": "69ae720ab75c98fc9aa3eb57",
+    "titulo": "Coordenador de Distribuição",
+    "nivel": "Pleno",
+    "salario_base": 45000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36e",
+    "departamento_id": "69ae720ab75c98fc9aa3eb58",
+    "titulo": "Operador Portuário",
+    "nivel": "Junior",
+    "salario_base": 26000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36e",
+    "departamento_id": "69ae720ab75c98fc9aa3eb58",
+    "titulo": "Supervisor de Operações",
+    "nivel": "Pleno",
+    "salario_base": 48000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36e",
+    "departamento_id": "69ae720ab75c98fc9aa3eb59",
+    "titulo": "Maquinista",
+    "nivel": "Pleno",
+    "salario_base": 38000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36e",
+    "departamento_id": "69ae720ab75c98fc9aa3eb59",
+    "titulo": "Controlador de Tráfego",
+    "nivel": "Pleno",
+    "salario_base": 42000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36e",
+    "departamento_id": "69ae720ab75c98fc9aa3eb5a",
+    "titulo": "Analista de Logística",
+    "nivel": "Pleno",
+    "salario_base": 40000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36e",
+    "departamento_id": "69ae720ab75c98fc9aa3eb5a",
+    "titulo": "Coordenador de Carga",
+    "nivel": "Senior",
+    "salario_base": 65000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36f",
+    "departamento_id": "69ae720ab75c98fc9aa3eb5b",
+    "titulo": "Agente de Aeroporto",
+    "nivel": "Junior",
+    "salario_base": 24000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36f",
+    "departamento_id": "69ae720ab75c98fc9aa3eb5b",
+    "titulo": "Supervisor de Operações",
+    "nivel": "Pleno",
+    "salario_base": 45000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36f",
+    "departamento_id": "69ae720ab75c98fc9aa3eb5c",
+    "titulo": "Agente de Segurança",
+    "nivel": "Junior",
+    "salario_base": 22000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36f",
+    "departamento_id": "69ae720ab75c98fc9aa3eb5c",
+    "titulo": "Inspetor de Segurança",
+    "nivel": "Pleno",
+    "salario_base": 42000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36f",
+    "departamento_id": "69ae720ab75c98fc9aa3eb5d",
+    "titulo": "Técnico de Manutenção",
+    "nivel": "Junior",
+    "salario_base": 25000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf36f",
+    "departamento_id": "69ae720ab75c98fc9aa3eb5d",
+    "titulo": "Engenheiro de Manutenção",
+    "nivel": "Pleno",
+    "salario_base": 52000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf370",
+    "departamento_id": "69ae720ab75c98fc9aa3eb5e",
+    "titulo": "Operador de Barragem",
+    "nivel": "Pleno",
+    "salario_base": 42000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf370",
+    "departamento_id": "69ae720ab75c98fc9aa3eb5e",
+    "titulo": "Supervisor de Operações",
+    "nivel": "Senior",
+    "salario_base": 68000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf370",
+    "departamento_id": "69ae720ab75c98fc9aa3eb5f",
+    "titulo": "Técnico de Turbinas",
+    "nivel": "Pleno",
+    "salario_base": 45000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf370",
+    "departamento_id": "69ae720ab75c98fc9aa3eb5f",
+    "titulo": "Engenheiro de Geração",
+    "nivel": "Senior",
+    "salario_base": 75000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf370",
+    "departamento_id": "69ae720ab75c98fc9aa3eb60",
+    "titulo": "Técnico de Segurança",
+    "nivel": "Pleno",
+    "salario_base": 38000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf370",
+    "departamento_id": "69ae720ab75c98fc9aa3eb60",
+    "titulo": "Coordenador de Segurança",
+    "nivel": "Senior",
+    "salario_base": 62000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf371",
+    "departamento_id": "69ae720ab75c98fc9aa3eb61",
+    "titulo": "Analista de Crédito",
+    "nivel": "Pleno",
+    "salario_base": 45000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf371",
+    "departamento_id": "69ae720ab75c98fc9aa3eb61",
+    "titulo": "Gerente de Crédito",
+    "nivel": "Senior",
+    "salario_base": 80000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf371",
+    "departamento_id": "69ae720ab75c98fc9aa3eb62",
+    "titulo": "Operador de Câmbio",
+    "nivel": "Pleno",
+    "salario_base": 48000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf371",
+    "departamento_id": "69ae720ab75c98fc9aa3eb62",
+    "titulo": "Especialista em Comércio Exterior",
+    "nivel": "Senior",
+    "salario_base": 82000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf371",
+    "departamento_id": "69ae720ab75c98fc9aa3eb63",
+    "titulo": "Gerente Private",
+    "nivel": "Senior",
+    "salario_base": 90000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf371",
+    "departamento_id": "69ae720ab75c98fc9aa3eb63",
+    "titulo": "Analista de Wealth Management",
+    "nivel": "Pleno",
+    "salario_base": 52000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf372",
+    "departamento_id": "69ae720ab75c98fc9aa3eb64",
+    "titulo": "Geólogo de Exploração",
+    "nivel": "Pleno",
+    "salario_base": 65000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf372",
+    "departamento_id": "69ae720ab75c98fc9aa3eb64",
+    "titulo": "Engenheiro de Petróleo",
+    "nivel": "Senior",
+    "salario_base": 110000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf372",
+    "departamento_id": "69ae720ab75c98fc9aa3eb65",
+    "titulo": "Analista de Parcerias",
+    "nivel": "Pleno",
+    "salario_base": 58000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf372",
+    "departamento_id": "69ae720ab75c98fc9aa3eb65",
+    "titulo": "Gerente de Participações",
+    "nivel": "Senior",
+    "salario_base": 95000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf372",
+    "departamento_id": "69ae720ab75c98fc9aa3eb66",
+    "titulo": "Engenheiro de Energias Renováveis",
+    "nivel": "Pleno",
+    "salario_base": 60000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf372",
+    "departamento_id": "69ae720ab75c98fc9aa3eb66",
+    "titulo": "Coordenador de Projetos Renováveis",
+    "nivel": "Senior",
+    "salario_base": 88000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf373",
+    "departamento_id": "69ae720ab75c98fc9aa3eb67",
+    "titulo": "Operador de Produção",
+    "nivel": "Junior",
+    "salario_base": 26000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf373",
+    "departamento_id": "69ae720ab75c98fc9aa3eb67",
+    "titulo": "Supervisor de Produção",
+    "nivel": "Pleno",
+    "salario_base": 48000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf373",
+    "departamento_id": "69ae720ab75c98fc9aa3eb68",
+    "titulo": "Operador de Mineração",
+    "nivel": "Pleno",
+    "salario_base": 38000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf373",
+    "departamento_id": "69ae720ab75c98fc9aa3eb68",
+    "titulo": "Geólogo de Mineração",
+    "nivel": "Senior",
+    "salario_base": 72000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf373",
+    "departamento_id": "69ae720ab75c98fc9aa3eb69",
+    "titulo": "Representante de Vendas",
+    "nivel": "Junior",
+    "salario_base": 28000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf373",
+    "departamento_id": "69ae720ab75c98fc9aa3eb69",
+    "titulo": "Coordenador de Distribuição",
+    "nivel": "Pleno",
+    "salario_base": 52000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf374",
+    "departamento_id": "69ae720ab75c98fc9aa3eb6a",
+    "titulo": "Operador de Fundição",
+    "nivel": "Junior",
+    "salario_base": 30000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf374",
+    "departamento_id": "69ae720ab75c98fc9aa3eb6a",
+    "titulo": "Supervisor de Fundição",
+    "nivel": "Pleno",
+    "salario_base": 55000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf374",
+    "departamento_id": "69ae720ab75c98fc9aa3eb6b",
+    "titulo": "Mecânico Industrial",
+    "nivel": "Pleno",
+    "salario_base": 42000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf374",
+    "departamento_id": "69ae720ab75c98fc9aa3eb6b",
+    "titulo": "Engenheiro de Manutenção",
+    "nivel": "Senior",
+    "salario_base": 78000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf374",
+    "departamento_id": "69ae720ab75c98fc9aa3eb6c",
+    "titulo": "Técnico de Segurança",
+    "nivel": "Pleno",
+    "salario_base": 38000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf374",
+    "departamento_id": "69ae720ab75c98fc9aa3eb6c",
+    "titulo": "Coordenador HSE",
+    "nivel": "Senior",
+    "salario_base": 70000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf375",
+    "departamento_id": "69ae720ab75c98fc9aa3eb6d",
+    "titulo": "Engenheiro de Exploração",
+    "nivel": "Pleno",
+    "salario_base": 68000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf375",
+    "departamento_id": "69ae720ab75c98fc9aa3eb6d",
+    "titulo": "Geofísico",
+    "nivel": "Senior",
+    "salario_base": 115000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf375",
+    "departamento_id": "69ae720ab75c98fc9aa3eb6e",
+    "titulo": "Operador de Processamento",
+    "nivel": "Pleno",
+    "salario_base": 52000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf375",
+    "departamento_id": "69ae720ab75c98fc9aa3eb6e",
+    "titulo": "Engenheiro de Processo",
+    "nivel": "Senior",
+    "salario_base": 92000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf375",
+    "departamento_id": "69ae720ab75c98fc9aa3eb6f",
+    "titulo": "Analista Comercial",
+    "nivel": "Pleno",
+    "salario_base": 48000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf375",
+    "departamento_id": "69ae720ab75c98fc9aa3eb6f",
+    "titulo": "Gerente de Comercialização",
+    "nivel": "Senior",
+    "salario_base": 85000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf376",
+    "departamento_id": "69ae720ab75c98fc9aa3eb70",
+    "titulo": "Operador de Mineração",
+    "nivel": "Pleno",
+    "salario_base": 42000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf376",
+    "departamento_id": "69ae720ab75c98fc9aa3eb70",
+    "titulo": "Supervisor de Mineração",
+    "nivel": "Senior",
+    "salario_base": 70000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf376",
+    "departamento_id": "69ae720ab75c98fc9aa3eb71",
+    "titulo": "Técnico de Processamento",
+    "nivel": "Pleno",
+    "salario_base": 40000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf376",
+    "departamento_id": "69ae720ab75c98fc9aa3eb71",
+    "titulo": "Engenheiro de Processamento",
+    "nivel": "Senior",
+    "salario_base": 75000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf376",
+    "departamento_id": "69ae720ab75c98fc9aa3eb72",
+    "titulo": "Coordenador Portuário",
+    "nivel": "Pleno",
+    "salario_base": 52000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf376",
+    "departamento_id": "69ae720ab75c98fc9aa3eb72",
+    "titulo": "Supervisor de Embarque",
+    "nivel": "Senior",
+    "salario_base": 68000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf377",
+    "departamento_id": "69ae720ab75c98fc9aa3eb73",
+    "titulo": "Operador de Mina",
+    "nivel": "Pleno",
+    "salario_base": 45000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf377",
+    "departamento_id": "69ae720ab75c98fc9aa3eb73",
+    "titulo": "Engenheiro de Minas",
+    "nivel": "Senior",
+    "salario_base": 95000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf377",
+    "departamento_id": "69ae720ab75c98fc9aa3eb74",
+    "titulo": "Coordenador Ferroviário",
+    "nivel": "Pleno",
+    "salario_base": 55000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf377",
+    "departamento_id": "69ae720ab75c98fc9aa3eb74",
+    "titulo": "Supervisor de Logística",
+    "nivel": "Senior",
+    "salario_base": 82000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf377",
+    "departamento_id": "69ae720ab75c98fc9aa3eb75",
+    "titulo": "Operador Portuário",
+    "nivel": "Pleno",
+    "salario_base": 42000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf377",
+    "departamento_id": "69ae720ab75c98fc9aa3eb75",
+    "titulo": "Coordenador de Terminal",
+    "nivel": "Senior",
+    "salario_base": 72000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf378",
+    "departamento_id": "69ae720ab75c98fc9aa3eb76",
+    "titulo": "Engenheiro Offshore",
+    "nivel": "Senior",
+    "salario_base": 125000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf378",
+    "departamento_id": "69ae720ab75c98fc9aa3eb76",
+    "titulo": "Geocientista",
+    "nivel": "Pleno",
+    "salario_base": 85000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf378",
+    "departamento_id": "69ae720ab75c98fc9aa3eb77",
+    "titulo": "Engenheiro de Reservatórios",
+    "nivel": "Senior",
+    "salario_base": 135000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf378",
+    "departamento_id": "69ae720ab75c98fc9aa3eb77",
+    "titulo": "Analista de Reservatórios",
+    "nivel": "Pleno",
+    "salario_base": 78000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf378",
+    "departamento_id": "69ae720ab75c98fc9aa3eb78",
+    "titulo": "Especialista Ambiental",
+    "nivel": "Senior",
+    "salario_base": 92000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf378",
+    "departamento_id": "69ae720ab75c98fc9aa3eb78",
+    "titulo": "Analista de Licenciamento",
+    "nivel": "Pleno",
+    "salario_base": 58000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf379",
+    "departamento_id": "69ae720ab75c98fc9aa3eb79",
+    "titulo": "Engenheiro Civil",
+    "nivel": "Pleno",
+    "salario_base": 55000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf379",
+    "departamento_id": "69ae720ab75c98fc9aa3eb79",
+    "titulo": "Mestre de Obras",
+    "nivel": "Pleno",
+    "salario_base": 42000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf379",
+    "departamento_id": "69ae720ab75c98fc9aa3eb7a",
+    "titulo": "Corretor Imobiliário",
+    "nivel": "Pleno",
+    "salario_base": 35000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf379",
+    "departamento_id": "69ae720ab75c98fc9aa3eb7a",
+    "titulo": "Gerente de Projetos Imobiliários",
+    "nivel": "Senior",
+    "salario_base": 75000,
+    "ativo": true
+  },
+
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf379",
+    "departamento_id": "69ae720ab75c98fc9aa3eb7b",
+    "titulo": "Gerente de Hotel",
+    "nivel": "Senior",
+    "salario_base": 70000,
+    "ativo": true
+  },
+  {
+    "empresa_id": "69ae6e9398fa38e8073bf379",
+    "departamento_id": "69ae720ab75c98fc9aa3eb7b",
+    "titulo": "Coordenador de Eventos",
+    "nivel": "Pleno",
+    "salario_base": 42000,
+    "ativo": true
+  }
+]
