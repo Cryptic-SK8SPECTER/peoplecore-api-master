@@ -3,10 +3,60 @@ const Funcionario = require('./../models/funcionarioModel');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
+const fs = require('fs');
+const path = require('path');
+
+const docsDir = path.join(__dirname, '..', 'public', 'uploads', 'documentos');
+
+const deleteDocumentoFileIfExists = (url) => {
+  if (!url || typeof url !== 'string') return;
+  if (!url.includes('/uploads/documentos/')) {
+    // Try to extract last segment anyway (in case url is a full URL)
+    const parts = url.split('/').filter(Boolean);
+    if (parts.length === 0) return;
+    const filename = parts[parts.length - 1];
+    const fullPath = path.join(docsDir, filename);
+    if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+    return;
+  }
+
+  const filename = url.split('/uploads/documentos/')[1];
+  if (!filename) return;
+  const fullPath = path.join(docsDir, filename);
+  if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+};
+
+// Map incoming multipart/json payload to Documento schema fields.
+// This keeps backward compatibility with older frontends that sent:
+// - url_arquivo, descricao, data_documento
+// while the schema expects:
+// - url, observacoes, data_validade
+exports.mapUploadBody = (req, res, next) => {
+  try {
+    if (req.file && req.file.filename) {
+      // Express serves from /public, so we store the public URL path.
+      req.body.url = `/uploads/documentos/${req.file.filename}`;
+    }
+
+    if (!req.body.url && req.body.url_arquivo) {
+      req.body.url = req.body.url_arquivo;
+    }
+    if (!req.body.observacoes && req.body.descricao) {
+      req.body.observacoes = req.body.descricao;
+    }
+    if (!req.body.data_validade && req.body.data_documento) {
+      req.body.data_validade = req.body.data_documento;
+    }
+
+    return next();
+  } catch (err) {
+    return next(err);
+  }
+};
 
 // Middleware: filtra por empresa do usuário
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.company }).select('_id');
+  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   req.funcionarioIds = funcionarios.map(f => f._id);
   req.query.funcionario_id = { $in: req.funcionarioIds };
   next();
@@ -18,7 +68,7 @@ exports.verificarFuncionario = catchAsync(async (req, res, next) => {
 
   const funcionario = await Funcionario.findOne({
     _id: req.body.funcionario_id,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!funcionario) {
@@ -32,7 +82,7 @@ exports.verificarFuncionario = catchAsync(async (req, res, next) => {
 exports.getByFuncionario = catchAsync(async (req, res, next) => {
   const funcionario = await Funcionario.findOne({
     _id: req.params.funcionarioId,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!funcionario) {
@@ -51,7 +101,7 @@ exports.getByFuncionario = catchAsync(async (req, res, next) => {
 
 // Obter por tipo
 exports.getByTipo = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.company }).select('_id');
+  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   const funcionarioIds = funcionarios.map(f => f._id);
 
   const documentos = await Documento.find({
@@ -74,7 +124,7 @@ exports.getExpirados = catchAsync(async (req, res, next) => {
   const dataLimite = new Date();
   dataLimite.setDate(dataLimite.getDate() + diasAlerta);
 
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.company }).select('_id');
+  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   const funcionarioIds = funcionarios.map(f => f._id);
 
   const documentos = await Documento.find({
@@ -93,7 +143,7 @@ exports.getExpirados = catchAsync(async (req, res, next) => {
 
 // Estatísticas
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.company }).select('_id');
+  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   const funcionarioIds = funcionarios.map(f => f._id);
 
   const porTipo = await Documento.aggregate([
@@ -127,11 +177,38 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   });
 });
 
-// CRUD padrão via factory
-exports.getAllDocumentos = factory.getAll(Documento);
+// Lista todos os documentos (com funcionario_id populado)
+// O front depende de `documento.funcionario_id.nome` para exibir o colaborador.
+exports.getAllDocumentos = catchAsync(async (req, res, next) => {
+  const documentos = await Documento.find(req.query)
+    .populate('funcionario_id', 'nome email')
+    .sort('-data_upload');
+
+  res.status(200).json({
+    status: 'success',
+    results: documentos.length,
+    data: {
+      data: documentos,
+    },
+  });
+});
 exports.getDocumento = factory.getOne(Documento, [
   { path: 'funcionario_id', select: 'nome email' }
 ]);
 exports.createDocumento = factory.createOne(Documento);
 exports.updateDocumento = factory.updateOne(Documento);
-exports.deleteDocumento = factory.deleteOne(Documento);
+exports.deleteDocumento = catchAsync(async (req, res, next) => {
+  const doc = await Documento.findById(req.params.id).select('url');
+  if (!doc) {
+    return next(new AppError('No document found with that ID', 404));
+  }
+
+  deleteDocumentoFileIfExists(doc.url);
+
+  await Documento.findByIdAndDelete(req.params.id);
+
+  res.status(204).json({
+    status: 'success',
+    data: null,
+  });
+});

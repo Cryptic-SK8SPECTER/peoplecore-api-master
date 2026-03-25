@@ -5,20 +5,20 @@ const AppError = require('./../utils/appError');
 
 // Middleware: define empresa_id do usuário logado
 exports.setEmpresaId = (req, res, next) => {
-  if (!req.body.empresa_id) req.body.empresa_id = req.user.company;
+  if (!req.body.empresa_id) req.body.empresa_id = req.user.empresa_id;
   next();
 };
 
 // Middleware: filtra por empresa do usuário
 exports.filterByEmpresa = (req, res, next) => {
-  req.query.empresa_id = req.user.company;
+  req.query.empresa_id = req.user.empresa_id;
   next();
 };
 
 // Obter bónus por funcionário
 exports.getByFuncionario = catchAsync(async (req, res, next) => {
   const bonus = await Bonus.find({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     funcionario_id: req.params.funcionarioId
   })
     .populate('funcionario_id', 'nome email')
@@ -35,7 +35,7 @@ exports.getByFuncionario = catchAsync(async (req, res, next) => {
 // Obter bónus por tipo
 exports.getByTipo = catchAsync(async (req, res, next) => {
   const bonus = await Bonus.find({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     tipo: req.params.tipo
   })
     .populate('funcionario_id', 'nome email')
@@ -52,7 +52,7 @@ exports.getByTipo = catchAsync(async (req, res, next) => {
 // Obter bónus pendentes
 exports.getPendentes = catchAsync(async (req, res, next) => {
   const bonus = await Bonus.find({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     status: 'Pendente'
   })
     .populate('funcionario_id', 'nome email')
@@ -75,7 +75,7 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
 
   const bonus = await Bonus.findOne({
     _id: req.params.id,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!bonus) {
@@ -97,7 +97,7 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
 // Estatísticas de bónus da empresa
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const porTipo = await Bonus.aggregate([
-    { $match: { empresa_id: require('mongoose').Types.ObjectId(req.user.company) } },
+    { $match: { empresa_id: require('mongoose').Types.ObjectId(req.user.empresa_id) } },
     {
       $group: {
         _id: '$tipo',
@@ -110,7 +110,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   ]);
 
   const porStatus = await Bonus.aggregate([
-    { $match: { empresa_id: require('mongoose').Types.ObjectId(req.user.company) } },
+    { $match: { empresa_id: require('mongoose').Types.ObjectId(req.user.empresa_id) } },
     {
       $group: {
         _id: '$status',
@@ -123,7 +123,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const porMes = await Bonus.aggregate([
     {
       $match: {
-        empresa_id: require('mongoose').Types.ObjectId(req.user.company),
+        empresa_id: require('mongoose').Types.ObjectId(req.user.empresa_id),
         status: { $in: ['Aprovado', 'Pago'] }
       }
     },
@@ -144,7 +144,18 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
 });
 
 // CRUD padrão via factory
-exports.getAllBonus = factory.getAll(Bonus);
+exports.getAllBonus = catchAsync(async (req, res, next) => {
+  const bonus = await Bonus.find(req.query)
+    .populate('funcionario_id', 'nome email')
+    .populate('aprovado_por', 'nome')
+    .sort('-data -createdAt');
+
+  res.status(200).json({
+    status: 'success',
+    results: bonus.length,
+    data: { data: bonus }
+  });
+});
 exports.getBonus = factory.getOne(Bonus, [
   { path: 'funcionario_id', select: 'nome email' },
   { path: 'aprovado_por', select: 'nome' },

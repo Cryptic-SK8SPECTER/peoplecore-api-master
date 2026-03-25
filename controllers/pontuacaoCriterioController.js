@@ -8,7 +8,7 @@ const AppError = require('./../utils/appError');
 
 // Middleware: filtra por empresa (via avaliações da empresa)
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
-  const avaliacoes = await Avaliacao.find({ empresa_id: req.user.company }).select('_id');
+  const avaliacoes = await Avaliacao.find({ empresa_id: req.user.empresa_id }).select('_id');
   const avaliacaoIds = avaliacoes.map(a => a._id);
 
   const avalFuncs = await AvaliacaoFuncionario.find({ avaliacao_id: { $in: avaliacaoIds } }).select('_id');
@@ -24,7 +24,7 @@ exports.verificarAvaliacaoFuncionario = catchAsync(async (req, res, next) => {
   const avalFunc = await AvaliacaoFuncionario.findById(req.body.avaliacao_func_id)
     .populate('avaliacao_id', 'empresa_id');
 
-  if (!avalFunc || avalFunc.avaliacao_id.empresa_id.toString() !== req.user.company.toString()) {
+  if (!avalFunc || avalFunc.avaliacao_id.empresa_id.toString() !== req.user.empresa_id.toString()) {
     return next(new AppError('Avaliação do funcionário não encontrada', 404));
   }
 
@@ -73,25 +73,55 @@ exports.submeterPontuacoes = catchAsync(async (req, res, next) => {
   const avalFunc = await AvaliacaoFuncionario.findById(avaliacao_func_id)
     .populate('avaliacao_id', 'empresa_id');
 
-  if (!avalFunc || avalFunc.avaliacao_id.empresa_id.toString() !== req.user.company.toString()) {
+  if (!avalFunc || avalFunc.avaliacao_id.empresa_id.toString() !== req.user.empresa_id.toString()) {
     return next(new AppError('Avaliação do funcionário não encontrada', 404));
+  }
+
+  if (pontuacoes.length === 0) {
+    return next(new AppError('Informe pelo menos uma pontuação', 400));
+  }
+
+  const criterios = await CriterioAvaliacao.find({
+    avaliacao_id: avalFunc.avaliacao_id._id
+  }).select('_id peso');
+
+  if (criterios.length === 0) {
+    return next(new AppError('Esta avaliação não possui critérios configurados', 400));
+  }
+
+  const criterioIdsValidos = new Set(criterios.map((c) => c._id.toString()));
+  const criterioIdsRecebidos = new Set();
+
+  for (const pont of pontuacoes) {
+    const criterioId = pont?.criterio_id?.toString();
+    const nota = Number(pont?.nota);
+    if (!criterioId || !criterioIdsValidos.has(criterioId)) {
+      return next(new AppError('Um ou mais critérios informados são inválidos para esta avaliação', 400));
+    }
+    if (criterioIdsRecebidos.has(criterioId)) {
+      return next(new AppError('Existem critérios duplicados na submissão', 400));
+    }
+    if (Number.isNaN(nota) || nota < 0 || nota > 5) {
+      return next(new AppError('Cada nota deve estar entre 0 e 5', 400));
+    }
+    criterioIdsRecebidos.add(criterioId);
+  }
+
+  if (criterioIdsRecebidos.size !== criterioIdsValidos.size) {
+    return next(new AppError('Submeta a pontuação para todos os critérios da avaliação', 400));
   }
 
   const resultados = await Promise.all(
     pontuacoes.map(async (pont) => {
       return PontuacaoCriterio.findOneAndUpdate(
         { avaliacao_func_id, criterio_id: pont.criterio_id },
-        { avaliacao_func_id, criterio_id: pont.criterio_id, nota: pont.nota },
+        { avaliacao_func_id, criterio_id: pont.criterio_id, nota: Number(pont.nota) },
         { upsert: true, new: true, runValidators: true }
       );
     })
   );
 
   // Calcular pontuação ponderada total
-  const criterios = await CriterioAvaliacao.find({
-    avaliacao_id: avalFunc.avaliacao_id._id
-  });
-
   const todasPontuacoes = await PontuacaoCriterio.find({ avaliacao_func_id });
 
   let somaNotaPonderada = 0;
@@ -106,7 +136,7 @@ exports.submeterPontuacoes = catchAsync(async (req, res, next) => {
   });
 
   if (somaPesos > 0) {
-    avalFunc.pontuacao = Math.round(somaNotaPonderada / somaPesos);
+    avalFunc.pontuacao = Number((somaNotaPonderada / somaPesos).toFixed(1));
     avalFunc.status = 'Concluída';
     await avalFunc.save();
   }
@@ -125,7 +155,7 @@ exports.submeterPontuacoes = catchAsync(async (req, res, next) => {
 exports.getEstatisticasByAvaliacao = catchAsync(async (req, res, next) => {
   const avaliacao = await Avaliacao.findOne({
     _id: req.params.avaliacaoId,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!avaliacao) {

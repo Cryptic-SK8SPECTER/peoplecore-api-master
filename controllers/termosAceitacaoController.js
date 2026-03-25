@@ -7,7 +7,7 @@ const AppError = require('./../utils/appError');
 // Middleware: filtra aceitações por empresa do usuário (via termos)
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
   const termosIds = await TermosCondicoes.find({
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   }).distinct('_id');
 
   req.query.termos_id = { in: termosIds };
@@ -19,7 +19,7 @@ exports.verificarTermos = catchAsync(async (req, res, next) => {
   if (req.body.termos_id) {
     const termos = await TermosCondicoes.findOne({
       _id: req.body.termos_id,
-      empresa_id: req.user.company,
+      empresa_id: req.user.empresa_id,
       status: 'Publicado'
     });
 
@@ -41,7 +41,7 @@ exports.aceitarTermos = catchAsync(async (req, res, next) => {
   // Verificar se os termos existem e estão publicados
   const termos = await TermosCondicoes.findOne({
     _id: termos_id,
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     status: 'Publicado'
   });
 
@@ -77,7 +77,7 @@ exports.aceitarTermos = catchAsync(async (req, res, next) => {
 exports.verificarAceitacao = catchAsync(async (req, res, next) => {
   // Buscar termos publicados da empresa
   const termosAtivos = await TermosCondicoes.find({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     status: 'Publicado'
   }).sort('-createdAt').limit(1);
 
@@ -115,7 +115,7 @@ exports.getByTermos = catchAsync(async (req, res, next) => {
   // Verificar se os termos pertencem à empresa
   const termos = await TermosCondicoes.findOne({
     _id: req.params.termosId,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!termos) {
@@ -174,7 +174,7 @@ exports.minhasAceitacoes = catchAsync(async (req, res, next) => {
 // Estatísticas de aceitação
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const termosIds = await TermosCondicoes.find({
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   }).distinct('_id');
 
   const stats = await TermosAceitacao.aggregate([

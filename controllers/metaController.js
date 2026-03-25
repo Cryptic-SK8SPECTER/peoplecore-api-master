@@ -3,18 +3,10 @@ const Funcionario = require('./../models/funcionarioModel');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
+const tenantController = require('./tenantController');
 
-// Middleware: define empresa_id do usuário logado
-exports.setEmpresaId = (req, res, next) => {
-  if (!req.body.empresa_id) req.body.empresa_id = req.user.company;
-  next();
-};
-
-// Middleware: filtra por empresa do usuário
-exports.filterByEmpresa = (req, res, next) => {
-  req.query.empresa_id = req.user.company;
-  next();
-};
+exports.setEmpresaId = tenantController.setEmpresaId;
+exports.filterByEmpresa = tenantController.filterByEmpresa;
 
 // Verificar se funcionário pertence à empresa
 exports.verificarFuncionario = catchAsync(async (req, res, next) => {
@@ -22,7 +14,7 @@ exports.verificarFuncionario = catchAsync(async (req, res, next) => {
 
   const funcionario = await Funcionario.findOne({
     _id: req.body.funcionario_id,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!funcionario) {
@@ -36,7 +28,7 @@ exports.verificarFuncionario = catchAsync(async (req, res, next) => {
 exports.getByFuncionario = catchAsync(async (req, res, next) => {
   const funcionario = await Funcionario.findOne({
     _id: req.params.funcionarioId,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!funcionario) {
@@ -58,7 +50,7 @@ exports.getByFuncionario = catchAsync(async (req, res, next) => {
 exports.getByAvaliacao = catchAsync(async (req, res, next) => {
   const metas = await Meta.find({
     avaliacao_id: req.params.avaliacaoId,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   })
     .populate('funcionario_id', 'nome email departamento_id')
     .sort('funcionario_id data_limite');
@@ -73,7 +65,7 @@ exports.getByAvaliacao = catchAsync(async (req, res, next) => {
 // Obter por status
 exports.getByStatus = catchAsync(async (req, res, next) => {
   const metas = await Meta.find({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     status: req.params.status
   })
     .populate('funcionario_id', 'nome email')
@@ -100,7 +92,7 @@ exports.atualizarProgresso = catchAsync(async (req, res, next) => {
 
   const meta = await Meta.findOne({
     _id: req.params.id,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!meta) {
@@ -124,7 +116,7 @@ exports.atualizarProgresso = catchAsync(async (req, res, next) => {
 exports.cancelarMeta = catchAsync(async (req, res, next) => {
   const meta = await Meta.findOne({
     _id: req.params.id,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!meta) {
@@ -149,13 +141,13 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const mongoose = require('mongoose');
 
   const porStatus = await Meta.aggregate([
-    { $match: { empresa_id: mongoose.Types.ObjectId(req.user.company) } },
+    { $match: { empresa_id: mongoose.Types.ObjectId(req.user.empresa_id) } },
     { $group: { _id: '$status', count: { $sum: 1 }, mediaProgresso: { $avg: '$progresso' } } },
     { $sort: { count: -1 } }
   ]);
 
   const porFuncionario = await Meta.aggregate([
-    { $match: { empresa_id: mongoose.Types.ObjectId(req.user.company) } },
+    { $match: { empresa_id: mongoose.Types.ObjectId(req.user.empresa_id) } },
     {
       $group: {
         _id: '$funcionario_id',
@@ -184,7 +176,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   ]);
 
   const atrasadas = await Meta.countDocuments({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     status: 'Atrasada'
   });
 

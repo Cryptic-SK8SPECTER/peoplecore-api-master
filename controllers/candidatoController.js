@@ -6,7 +6,7 @@ const AppError = require('./../utils/appError');
 
 // Middleware: filtra por empresa do usuário (via vagas da empresa)
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
-  const vagas = await Vaga.find({ empresa_id: req.user.company }).select('_id');
+  const vagas = await Vaga.find({ empresa_id: req.user.empresa_id }).select('_id');
   req.vagaIds = vagas.map(v => v._id);
   req.query.vaga_id = { $in: req.vagaIds };
   next();
@@ -18,7 +18,7 @@ exports.verificarVaga = catchAsync(async (req, res, next) => {
 
   const vaga = await Vaga.findOne({
     _id: req.body.vaga_id,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!vaga) {
@@ -36,7 +36,7 @@ exports.verificarVaga = catchAsync(async (req, res, next) => {
 exports.getByVaga = catchAsync(async (req, res, next) => {
   const vaga = await Vaga.findOne({
     _id: req.params.vagaId,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!vaga) {
@@ -55,7 +55,7 @@ exports.getByVaga = catchAsync(async (req, res, next) => {
 
 // Obter por status
 exports.getByStatus = catchAsync(async (req, res, next) => {
-  const vagas = await Vaga.find({ empresa_id: req.user.company }).select('_id');
+  const vagas = await Vaga.find({ empresa_id: req.user.empresa_id }).select('_id');
   const vagaIds = vagas.map(v => v._id);
 
   const candidatos = await Candidato.find({
@@ -86,7 +86,7 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
   }
 
   // Verificar se candidato pertence a vaga da empresa
-  const vagas = await Vaga.find({ empresa_id: req.user.company }).select('_id');
+  const vagas = await Vaga.find({ empresa_id: req.user.empresa_id }).select('_id');
   const vagaIds = vagas.map(v => v._id.toString());
 
   const candidato = await Candidato.findById(req.params.id);
@@ -111,7 +111,7 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
 
 // Estatísticas
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
-  const vagas = await Vaga.find({ empresa_id: req.user.company }).select('_id');
+  const vagas = await Vaga.find({ empresa_id: req.user.empresa_id }).select('_id');
   const vagaIds = vagas.map(v => v._id);
 
   const porStatus = await Candidato.aggregate([
@@ -154,7 +154,22 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
 });
 
 // CRUD padrão via factory
-exports.getAllCandidatos = factory.getAll(Candidato);
+exports.getAllCandidatos = catchAsync(async (req, res, next) => {
+  const vagaIds = await Vaga.find({ empresa_id: req.user.empresa_id }).distinct('_id');
+  const docs = await Candidato.find({ vaga_id: { $in: vagaIds } })
+    .populate({
+      path: 'vaga_id',
+      select: 'cargo departamento_id tipo_contrato',
+      populate: { path: 'departamento_id', select: 'nome' }
+    })
+    .sort('-data_aplicacao');
+
+  res.status(200).json({
+    status: 'success',
+    results: docs.length,
+    data: { data: docs }
+  });
+});
 exports.getCandidato = factory.getOne(Candidato, [
   { path: 'vaga_id', select: 'cargo departamento_id tipo_contrato' }
 ]);

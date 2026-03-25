@@ -5,11 +5,115 @@ const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 const generateRandomPassword = require('./../utils/passwordGenerator');
 const Email = require('./../utils/email');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
+
+// ─── Upload de foto do funcionário (public/users) ─────────────
+const usersDir = path.join(__dirname, '..', 'public', 'users');
+if (!fs.existsSync(usersDir)) {
+  fs.mkdirSync(usersDir, { recursive: true });
+}
+
+const funcionarioPhotoStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, usersDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase() || '.jpg';
+    const safeExt = ext.match(/^\.[a-z0-9]+$/i) ? ext : '.jpg';
+    const funcionarioId = req.params?.id ? String(req.params.id) : 'new';
+    const unique = Date.now();
+    cb(null, `funcionario-${funcionarioId}-${unique}${safeExt}`);
+  },
+});
+
+const funcionarioPhotoFilter = (req, file, cb) => {
+  if (file.mimetype && file.mimetype.startsWith('image')) return cb(null, true);
+  return cb(new AppError('Apenas imagens são permitidas', 400), false);
+};
+
+const uploadFuncionarioPhoto = multer({
+  storage: funcionarioPhotoStorage,
+  fileFilter: funcionarioPhotoFilter,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+});
+
+// Expose middleware for routes
+exports.uploadFuncionarioPhoto = uploadFuncionarioPhoto.single('foto');
+
+exports.updateFuncionarioFoto = catchAsync(async (req, res, next) => {
+  if (!req.file) return next(new AppError('Foto é obrigatória', 400));
+
+  const funcionario = await Funcionario.findOne({
+    _id: req.params.id,
+    empresa_id: req.user.empresa_id,
+  });
+
+  if (!funcionario) {
+    return next(new AppError('Funcionário não encontrado', 404));
+  }
+
+  const oldFoto = funcionario.foto_url;
+  if (oldFoto && typeof oldFoto === 'string' && !oldFoto.startsWith('http')) {
+    const oldPath = path.join(usersDir, oldFoto);
+    if (fs.existsSync(oldPath)) {
+      try {
+        fs.unlinkSync(oldPath);
+      } catch (e) {
+        // Não bloquear atualização se falhar ao apagar
+        console.error('Falha ao apagar foto anterior:', e);
+      }
+    }
+  }
+
+  funcionario.foto_url = req.file.filename;
+  await funcionario.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      data: funcionario,
+    },
+  });
+});
 
 // Middleware: define empresa_id do usuário logado
 exports.setEmpresaId = (req, res, next) => {
   if (!req.body.empresa_id) req.body.empresa_id = req.user.empresa_id;
   next();
+};
+
+// ─── Authorization: colaborador só edita o seu próprio registo ───
+// Se o utilizador logado estiver associado a um funcionario_id (i.e. não é admin/rh
+// “solto”), então ele só pode atualizar o próprio funcionario.
+exports.restrictToOwnFuncionario = (req, res, next) => {
+  try {
+    const loggedFuncionarioId = req.user?.funcionario_id;
+    const allowedRoles = ['admin', 'rh', 'super-admin', 'funcionario'];
+
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      return next(
+        new AppError('You do not have permission to perform this action', 403),
+      );
+    }
+
+    if (!loggedFuncionarioId) {
+      // Funcionário tem de estar associado a um registro de funcionario
+      if (req.user.role === 'funcionario') {
+        return next(new AppError('Não tem permissão para editar este colaborador', 403));
+      }
+      return next();
+    }
+
+    // Only block when trying to update a different funcionario
+    if (String(loggedFuncionarioId) !== String(req.params.id)) {
+      return next(
+        new AppError('Não tem permissão para editar este colaborador', 403),
+      );
+    }
+    return next();
+  } catch (e) {
+    return next(new AppError('Erro de autorização', 403));
+  }
 };
 
 // Middleware: filtra por empresa do usuário

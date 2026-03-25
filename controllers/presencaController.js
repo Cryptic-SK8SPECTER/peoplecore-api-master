@@ -25,8 +25,40 @@ exports.marcarEntrada = catchAsync(async (req, res, next) => {
     return next(new AppError('Funcionário não encontrado', 404));
   }
 
+  // Regra: funcionário em férias não pode marcar presenças
+  if (funcionario.status === "Férias") {
+    return next(new AppError("Funcionário em férias não pode marcar presenças", 400));
+  }
+
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
+
+  // Validação por tipo de contrato (início/fim)
+  const tipo = funcionario.tipo_contrato;
+  const periodTipos = new Set(["Termo Incerto", "Termo Certo", "Estágio"]);
+  if (tipo && periodTipos.has(tipo)) {
+    // Início
+    if (funcionario.data_admissao) {
+      const start = new Date(funcionario.data_admissao);
+      if (!isNaN(start.getTime())) {
+        start.setHours(0, 0, 0, 0);
+        if (hoje.getTime() < start.getTime()) {
+          return next(new AppError("Contrato ainda não iniciado", 400));
+        }
+      }
+    }
+
+    // Fim
+    if (funcionario.data_saida) {
+      const end = new Date(funcionario.data_saida);
+      if (!isNaN(end.getTime())) {
+        end.setHours(23, 59, 59, 999);
+        if (hoje.getTime() > end.getTime()) {
+          return next(new AppError("Contrato expirado", 400));
+        }
+      }
+    }
+  }
 
   const presencaExistente = await Presenca.findOne({
     funcionario_id: funcionario._id,
@@ -79,6 +111,43 @@ exports.marcarSaida = catchAsync(async (req, res, next) => {
 
   if (!presenca) {
     return next(new AppError('Não existe registo de entrada para hoje', 400));
+  }
+
+  const funcionario = await Funcionario.findOne({
+    _id: req.body.funcionario_id,
+    empresa_id: req.user.empresa_id,
+  });
+
+  // Regra: funcionário em férias não pode marcar presenças
+  if (funcionario?.status === "Férias") {
+    return next(new AppError("Funcionário em férias não pode marcar presenças", 400));
+  }
+
+  // Validação por tipo de contrato (início/fim)
+  const tipo = funcionario?.tipo_contrato;
+  const periodTipos = new Set(["Termo Incerto", "Termo Certo", "Estágio"]);
+  if (tipo && periodTipos.has(tipo)) {
+    // Início
+    if (funcionario?.data_admissao) {
+      const start = new Date(funcionario.data_admissao);
+      if (!isNaN(start.getTime())) {
+        start.setHours(0, 0, 0, 0);
+        if (hoje.getTime() < start.getTime()) {
+          return next(new AppError("Contrato ainda não iniciado", 400));
+        }
+      }
+    }
+
+    // Fim
+    if (funcionario?.data_saida) {
+      const end = new Date(funcionario.data_saida);
+      if (!isNaN(end.getTime())) {
+        end.setHours(23, 59, 59, 999);
+        if (hoje.getTime() > end.getTime()) {
+          return next(new AppError("Contrato expirado", 400));
+        }
+      }
+    }
   }
 
   if (presenca.hora_saida) {
@@ -140,6 +209,9 @@ exports.getByFuncionario = catchAsync(async (req, res, next) => {
 // Obter presenças diárias (todos os funcionários da empresa)
 exports.getDiario = catchAsync(async (req, res, next) => {
   const data = req.query.data ? new Date(req.query.data) : new Date();
+  if (isNaN(data.getTime())) {
+    return next(new AppError('Data inválida', 400));
+  }
   data.setHours(0, 0, 0, 0);
 
   const funcionarios = await Funcionario.find({
@@ -226,8 +298,23 @@ exports.getRelatorioMensal = catchAsync(async (req, res, next) => {
     },
     { $unwind: '$funcionario' },
     {
+      $lookup: {
+        from: 'departamentos',
+        localField: 'funcionario.departamento_id',
+        foreignField: '_id',
+        as: 'departamento',
+      },
+    },
+    {
+      $unwind: {
+        path: '$departamento',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
       $project: {
         funcionario: '$funcionario.nome',
+        departamento: '$departamento.nome',
         totalPresencas: 1,
         atrasos: 1,
         saidasAntecipadas: 1,

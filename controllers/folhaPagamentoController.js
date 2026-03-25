@@ -11,13 +11,13 @@ const AppError = require('./../utils/appError');
 
 // Middleware: define empresa_id do usuário logado
 exports.setEmpresaId = (req, res, next) => {
-  if (!req.body.empresa_id) req.body.empresa_id = req.user.company;
+  if (!req.body.empresa_id) req.body.empresa_id = req.user.empresa_id;
   next();
 };
 
 // Middleware: filtra por empresa do usuário
 exports.filterByEmpresa = (req, res, next) => {
-  req.query.empresa_id = req.user.company;
+  req.query.empresa_id = req.user.empresa_id;
   next();
 };
 
@@ -27,7 +27,7 @@ exports.verificarDuplicidade = catchAsync(async (req, res, next) => {
   if (!mes || !ano) return next();
 
   const query = {
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     mes,
     ano
   };
@@ -49,7 +49,7 @@ exports.getByMesAno = catchAsync(async (req, res, next) => {
   const { mes, ano } = req.params;
 
   const folha = await FolhaPagamento.findOne({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     mes,
     ano: Number(ano)
   });
@@ -59,7 +59,9 @@ exports.getByMesAno = catchAsync(async (req, res, next) => {
   }
 
   const itens = await ItemFolha.find({ folha_id: folha._id })
-    .populate('funcionario_id', 'nome email departamento_id cargo_id');
+    .populate('funcionario_id', 'nome email departamento_id cargo_id')
+    // Popula o "nome" do cargo para o front-end conseguir renderizar corretamente.
+    .populate('funcionario_id.cargo_id', 'nome titulo');
 
   res.status(200).json({
     status: 'success',
@@ -71,7 +73,7 @@ exports.getByMesAno = catchAsync(async (req, res, next) => {
 exports.processarFolha = catchAsync(async (req, res, next) => {
   const folha = await FolhaPagamento.findOne({
     _id: req.params.id,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!folha) {
@@ -87,9 +89,9 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
 
   try {
     const funcionarios = await Funcionario.find({
-      empresa_id: req.user.company,
+      empresa_id: req.user.empresa_id,
       status: 'Ativo'
-    }).populate('cargo_id', 'salario_min');
+    }).populate('cargo_id', 'salario_base salario_min subsidio_transporte subsidio_alimentacao');
 
     // Mapear mês para formato YYYY-MM
     const meses = {
@@ -111,9 +113,11 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
           funcionario_id: func._id
         });
 
-        if (itemExistente) return;
-
-        const salarioBase = func.cargo_id?.salario_min || 0;
+        const salarioBase = func.cargo_id?.salario_base ?? func.cargo_id?.salario_min ?? 0;
+        const subsidioTransporteValor =
+          func.cargo_id?.subsidio_transporte ?? func.cargo_id?.subsidioTransporte ?? 0;
+        const subsidioAlimentacaoValor =
+          func.cargo_id?.subsidio_alimentacao ?? func.cargo_id?.subsidioAlimentacao ?? 0;
 
         // Horas extras aprovadas
         const horasExtras = await HoraExtra.aggregate([
@@ -156,16 +160,38 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
         ]);
         const descontosTotal = descontos.length > 0 ? descontos[0].total : 0;
 
-        const item = await ItemFolha.create({
-          folha_id: folha._id,
-          funcionario_id: func._id,
-          salario_base: salarioBase,
-          horas_extras_valor: horasExtrasValor,
-          bonus_total: bonusTotal,
-          descontos_total: descontosTotal
-        });
+        // Se já existir item (reprocessamento), atualiza; caso contrário, cria.
+        // Isso garante que a geração de recibos funcione usando status 'Processado'/'Pago'.
+        let item;
+        if (itemExistente) {
+          itemExistente.salario_base = salarioBase;
+          itemExistente.subsidio_transporte_valor = subsidioTransporteValor;
+          itemExistente.subsidio_alimentacao_valor = subsidioAlimentacaoValor;
+          itemExistente.horas_extras_valor = horasExtrasValor;
+          itemExistente.bonus_total = bonusTotal;
+          itemExistente.descontos_total = descontosTotal;
+          itemExistente.status = 'Processado';
+          item = await itemExistente.save({ validateBeforeSave: false });
+        } else {
+          item = await ItemFolha.create({
+            folha_id: folha._id,
+            funcionario_id: func._id,
+            salario_base: salarioBase,
+            subsidio_transporte_valor: subsidioTransporteValor,
+            subsidio_alimentacao_valor: subsidioAlimentacaoValor,
+            horas_extras_valor: horasExtrasValor,
+            bonus_total: bonusTotal,
+            descontos_total: descontosTotal,
+            status: 'Processado'
+          });
+        }
 
-        totalBruto += salarioBase + horasExtrasValor + bonusTotal;
+        totalBruto +=
+          salarioBase +
+          horasExtrasValor +
+          bonusTotal +
+          subsidioTransporteValor +
+          subsidioAlimentacaoValor;
         totalDescontos += descontosTotal;
         totalLiquido += item.salario_liquido;
       })
@@ -200,7 +226,7 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
 
   const folha = await FolhaPagamento.findOne({
     _id: req.params.id,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!folha) {
@@ -235,7 +261,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const porMes = await FolhaPagamento.aggregate([
     {
       $match: {
-        empresa_id: mongoose.Types.ObjectId(req.user.company),
+        empresa_id: mongoose.Types.ObjectId(req.user.empresa_id),
         status: { $in: ['Processado', 'Fechado'] }
       }
     },
@@ -252,7 +278,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const resumoAnual = await FolhaPagamento.aggregate([
     {
       $match: {
-        empresa_id: mongoose.Types.ObjectId(req.user.company),
+        empresa_id: mongoose.Types.ObjectId(req.user.empresa_id),
         ano: new Date().getFullYear(),
         status: { $in: ['Processado', 'Fechado'] }
       }

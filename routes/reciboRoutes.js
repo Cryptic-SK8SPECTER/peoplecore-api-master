@@ -15,6 +15,7 @@ router.get('/estatisticas', authController.restrictTo('admin', 'rh'), reciboCont
 router.get('/mes/:mes/:ano', authController.restrictTo('admin', 'rh'), reciboController.getByMesAno);
 router.get('/funcionario/:funcionarioId', reciboController.getByFuncionario);
 router.post('/gerar', authController.restrictTo('admin', 'rh'), reciboController.gerarRecibos);
+router.post('/:id/enviar-email', authController.restrictTo('admin', 'rh'), reciboController.enviarReciboPorEmail);
 
 // CRUD padrão
 router

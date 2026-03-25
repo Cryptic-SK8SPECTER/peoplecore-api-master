@@ -7,7 +7,7 @@ const AppError = require('./../utils/appError');
 
 // Middleware: filtra por empresa do usuário
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.company }).select('_id');
+  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   req.funcionarioIds = funcionarios.map(f => f._id);
   req.query.funcionario_id = { $in: req.funcionarioIds };
   next();
@@ -30,7 +30,7 @@ exports.getByFolha = catchAsync(async (req, res, next) => {
 exports.getByFuncionario = catchAsync(async (req, res, next) => {
   const funcionario = await Funcionario.findOne({
     _id: req.params.funcionarioId,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!funcionario) {
@@ -63,7 +63,7 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
     return next(new AppError('Item de folha não encontrado', 404));
   }
 
-  if (item.funcionario_id.empresa_id.toString() !== req.user.company.toString()) {
+  if (item.funcionario_id.empresa_id.toString() !== req.user.empresa_id.toString()) {
     return next(new AppError('Item de folha não encontrado', 404));
   }
 

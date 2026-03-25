@@ -20,7 +20,7 @@ const avaliacaoFuncionarioSchema = new mongoose.Schema({
   pontuacao: {
     type: Number,
     min: [0, 'Pontuação não pode ser negativa'],
-    max: [100, 'Pontuação não pode exceder 100']
+    max: [5, 'Pontuação não pode exceder 5']
   },
   classificacao: {
     type: String,
@@ -38,10 +38,10 @@ const avaliacaoFuncionarioSchema = new mongoose.Schema({
 // Calculate classification based on pontuacao
 avaliacaoFuncionarioSchema.pre('save', function(next) {
   if (this.pontuacao !== undefined) {
-    if (this.pontuacao >= 90) this.classificacao = 'Excelente';
-    else if (this.pontuacao >= 75) this.classificacao = 'Bom';
-    else if (this.pontuacao >= 60) this.classificacao = 'Regular';
-    else if (this.pontuacao >= 40) this.classificacao = 'Precisa Melhorar';
+    if (this.pontuacao >= 4.5) this.classificacao = 'Excelente';
+    else if (this.pontuacao >= 3.5) this.classificacao = 'Bom';
+    else if (this.pontuacao >= 2.5) this.classificacao = 'Regular';
+    else if (this.pontuacao >= 1.5) this.classificacao = 'Precisa Melhorar';
     else this.classificacao = 'Insuficiente';
   }
   next();

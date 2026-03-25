@@ -6,13 +6,13 @@ const AppError = require('./../utils/appError');
 
 // Middleware: filtra por empresa do usuário
 exports.filterByEmpresa = (req, res, next) => {
-  req.query.empresa_id = req.user.company;
+  req.query.empresa_id = req.user.empresa_id;
   next();
 };
 
 // Middleware: injeta empresa_id e criado_por na criação
 exports.setEmpresaCriador = (req, res, next) => {
-  req.body.empresa_id = req.user.company;
+  req.body.empresa_id = req.user.empresa_id;
   req.body.criado_por = req.user._id;
   next();
 };
@@ -21,7 +21,7 @@ exports.setEmpresaCriador = (req, res, next) => {
 exports.publicar = catchAsync(async (req, res, next) => {
   const termos = await TermosCondicoes.findOne({
     _id: req.params.id,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!termos) {
@@ -39,7 +39,7 @@ exports.publicar = catchAsync(async (req, res, next) => {
   // Arquivar todos os termos publicados da mesma empresa
   await TermosCondicoes.updateMany(
     {
-      empresa_id: req.user.company,
+      empresa_id: req.user.empresa_id,
       status: 'Publicado'
     },
     {
@@ -64,7 +64,7 @@ exports.publicar = catchAsync(async (req, res, next) => {
 exports.arquivar = catchAsync(async (req, res, next) => {
   const termos = await TermosCondicoes.findOne({
     _id: req.params.id,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!termos) {
@@ -89,7 +89,7 @@ exports.arquivar = catchAsync(async (req, res, next) => {
 // Obter termos ativos (publicados) da empresa
 exports.getTermosAtivos = catchAsync(async (req, res, next) => {
   const termos = await TermosCondicoes.findOne({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     status: 'Publicado'
   })
     .populate('criado_por', 'email')
@@ -107,7 +107,7 @@ exports.getTermosAtivos = catchAsync(async (req, res, next) => {
 exports.duplicar = catchAsync(async (req, res, next) => {
   const termosOriginal = await TermosCondicoes.findOne({
     _id: req.params.id,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!termosOriginal) {
@@ -121,7 +121,7 @@ exports.duplicar = catchAsync(async (req, res, next) => {
 
   // Verificar se a versão já existe
   const versaoExiste = await TermosCondicoes.findOne({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     versao: novaVersao
   });
 
@@ -130,7 +130,7 @@ exports.duplicar = catchAsync(async (req, res, next) => {
   }
 
   const novoTermos = await TermosCondicoes.create({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     titulo: req.body.titulo || termosOriginal.titulo,
     versao: novaVersao,
     conteudo: req.body.conteudo || termosOriginal.conteudo,
@@ -149,7 +149,7 @@ exports.duplicar = catchAsync(async (req, res, next) => {
 // Estatísticas dos termos
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const totalPorStatus = await TermosCondicoes.aggregate([
-    { $match: { empresa_id: req.user.company } },
+    { $match: { empresa_id: req.user.empresa_id } },
     {
       $group: {
         _id: '$status',
@@ -160,7 +160,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
 
   // Contar aceitações dos termos publicados
   const termosIds = await TermosCondicoes.find({
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   }).distinct('_id');
 
   const aceitacoesPorTermos = await TermosAceitacao.aggregate([

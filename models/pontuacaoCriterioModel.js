@@ -16,7 +16,7 @@ const pontuacaoCriterioSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Nota é obrigatória'],
     min: [0, 'Nota não pode ser negativa'],
-    max: [100, 'Nota não pode exceder 100']
+    max: [5, 'Nota não pode exceder 5']
   }
 }, {
   timestamps: true

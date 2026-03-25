@@ -5,13 +5,13 @@ const AppError = require('./../utils/appError');
 
 // Middleware: define empresa_id do usuário logado
 exports.setEmpresaId = (req, res, next) => {
-  if (!req.body.empresa_id) req.body.empresa_id = req.user.company;
+  if (!req.body.empresa_id) req.body.empresa_id = req.user.empresa_id;
   next();
 };
 
 // Middleware: filtra por empresa do usuário
 exports.filterByEmpresa = (req, res, next) => {
-  req.query.empresa_id = req.user.company;
+  req.query.empresa_id = req.user.empresa_id;
   next();
 };
 
@@ -20,7 +20,7 @@ exports.verificarNomeDuplicado = catchAsync(async (req, res, next) => {
   if (!req.body.nome) return next();
 
   const query = {
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     nome: req.body.nome
   };
 
@@ -39,7 +39,7 @@ exports.verificarNomeDuplicado = catchAsync(async (req, res, next) => {
 // Obter todos os perfis da empresa (ordenados por nome)
 exports.getPerfisDaEmpresa = catchAsync(async (req, res, next) => {
   const perfis = await Perfil.find({
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   }).sort('nome');
 
   res.status(200).json({
@@ -53,7 +53,7 @@ exports.getPerfisDaEmpresa = catchAsync(async (req, res, next) => {
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const Funcionario = require('./../models/funcionarioModel');
 
-  const perfis = await Perfil.find({ empresa_id: req.user.company }).sort('nome');
+  const perfis = await Perfil.find({ empresa_id: req.user.empresa_id }).sort('nome');
 
   const estatisticas = await Promise.all(
     perfis.map(async (perfil) => {

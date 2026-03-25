@@ -20,12 +20,21 @@ exports.filterByAvaliacao = (req, res, next) => {
 
 // Obter avaliações de um funcionário específico
 exports.getByFuncionario = catchAsync(async (req, res, next) => {
-  const avaliacoes = await AvaliacaoFuncionario.find({
+  const isAdminOuRh = ['admin', 'rh'].includes(req.user?.role);
+  if (!isAdminOuRh && req.user?.employee?.toString() !== req.params.funcionarioId.toString()) {
+    return next(new AppError('Sem permissão para consultar avaliações de outro funcionário', 403));
+  }
+
+  const avaliacoesBrutas = await AvaliacaoFuncionario.find({
     funcionario_id: req.params.funcionarioId
   })
-    .populate('avaliacao_id', 'nome periodo_inicio periodo_fim status')
+    .populate('avaliacao_id', 'nome periodo_inicio periodo_fim status empresa_id')
     .populate('avaliador_id', 'nome')
     .sort('-createdAt');
+
+  const avaliacoes = avaliacoesBrutas.filter(
+    (av) => av.avaliacao_id?.empresa_id?.toString() === req.user.empresa_id.toString()
+  );
 
   res.status(200).json({
     status: 'success',
@@ -38,6 +47,11 @@ exports.getByFuncionario = catchAsync(async (req, res, next) => {
 
 // Submeter pontuação (funcionário avaliador)
 exports.submeterAvaliacao = catchAsync(async (req, res, next) => {
+  const pontuacao = Number(req.body.pontuacao);
+  if (Number.isNaN(pontuacao) || pontuacao < 0 || pontuacao > 5) {
+    return next(new AppError('Pontuação deve estar entre 0 e 5', 400));
+  }
+
   const avaliacao = await AvaliacaoFuncionario.findOne({
     _id: req.params.id,
     avaliador_id: req.user.employee
@@ -51,7 +65,7 @@ exports.submeterAvaliacao = catchAsync(async (req, res, next) => {
     return next(new AppError('Esta avaliação já foi concluída', 400));
   }
 
-  avaliacao.pontuacao = req.body.pontuacao;
+  avaliacao.pontuacao = pontuacao;
   avaliacao.status = 'Concluída';
   await avaliacao.save();
 
@@ -87,7 +101,26 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
 });
 
 // CRUD padrão via factory
-exports.getAllAvaliacoesFuncionario = factory.getAll(AvaliacaoFuncionario);
+exports.getAllAvaliacoesFuncionario = catchAsync(async (req, res, next) => {
+  const query = {};
+  if (req.query.avaliacao_id) query.avaliacao_id = req.query.avaliacao_id;
+  if (req.query.funcionario_id) query.funcionario_id = req.query.funcionario_id;
+  if (req.query.status) query.status = req.query.status;
+
+  const docs = await AvaliacaoFuncionario.find(query)
+    .populate('avaliacao_id', 'nome periodo_inicio periodo_fim status')
+    .populate('funcionario_id', 'nome email departamento_id')
+    .populate('avaliador_id', 'nome')
+    .sort('-createdAt');
+
+  res.status(200).json({
+    status: 'success',
+    results: docs.length,
+    data: {
+      data: docs
+    }
+  });
+});
 exports.getAvaliacaoFuncionario = factory.getOne(AvaliacaoFuncionario, [
   { path: 'avaliacao_id', select: 'nome periodo_inicio periodo_fim status' },
   { path: 'funcionario_id', select: 'nome email' },

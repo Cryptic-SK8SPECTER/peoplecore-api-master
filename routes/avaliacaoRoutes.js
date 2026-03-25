@@ -25,4 +25,5 @@ router
   .delete(avaliacaoController.deleteAvaliacao);
 router.patch('/:id/status', avaliacaoController.alterarStatus);
 router.get('/:id/resumo', avaliacaoController.getResumo);
+router.get('/:id/criterios', avaliacaoController.getCriterios);
 module.exports = router;

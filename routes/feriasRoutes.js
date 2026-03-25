@@ -21,6 +21,7 @@ router
   .get(feriasController.filterByEmpresa, feriasController.getAllFerias)
   .post(
     feriasController.verificarSobreposicao,
+    feriasController.verificarDiasMaximosPorTipo,
     feriasController.createFerias
   );
 

@@ -7,13 +7,13 @@ const AppError = require('./../utils/appError');
 
 // Middleware: filtra pela empresa do usuário logado
 exports.filterByEmpresa = (req, res, next) => {
-  req.query._id = req.user.company;
+  req.query._id = req.user.empresa_id;
   next();
 };
 
 // Obter dados da própria empresa
 exports.getMinhaEmpresa = catchAsync(async (req, res, next) => {
-  const empresa = await Empresa.findById(req.user.company);
+  const empresa = await Empresa.findById(req.user.empresa_id);
 
   if (!empresa) {
     return next(new AppError('Empresa não encontrada', 404));
@@ -45,7 +45,7 @@ exports.updateMinhaEmpresa = catchAsync(async (req, res, next) => {
     if (req.body[campo] !== undefined) updates[campo] = req.body[campo];
   });
 
-  const empresa = await Empresa.findByIdAndUpdate(req.user.company, updates, {
+  const empresa = await Empresa.findByIdAndUpdate(req.user.empresa_id, updates, {
     new: true,
     runValidators: true,
   });
@@ -65,14 +65,14 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const Funcionario = require('./../models/funcionarioModel');
 
   const totalFuncionarios = await Funcionario.countDocuments({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     status: 'Ativo',
   });
 
   const porDepartamento = await Funcionario.aggregate([
     {
       $match: {
-        empresa_id: require('mongoose').Types.ObjectId(req.user.company),
+        empresa_id: require('mongoose').Types.ObjectId(req.user.empresa_id),
         status: 'Ativo',
       },
     },
@@ -103,7 +103,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const porStatus = await Funcionario.aggregate([
     {
       $match: {
-        empresa_id: require('mongoose').Types.ObjectId(req.user.company),
+        empresa_id: require('mongoose').Types.ObjectId(req.user.empresa_id),
       },
     },
     {

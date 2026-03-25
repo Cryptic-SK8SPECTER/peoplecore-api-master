@@ -8,7 +8,7 @@ const AppError = require('./../utils/appError');
 
 // Middleware: filtra por empresa (via vagas da empresa)
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
-  const vagas = await Vaga.find({ empresa_id: req.user.company }).select('_id');
+  const vagas = await Vaga.find({ empresa_id: req.user.empresa_id}).select('_id');
   req.query.vaga_id = { $in: vagas.map(v => v._id) };
   next();
 });
@@ -18,7 +18,7 @@ exports.verificarRelacoes = catchAsync(async (req, res, next) => {
   const { vaga_id, candidato_id, entrevistador_id } = req.body;
 
   if (vaga_id) {
-    const vaga = await Vaga.findOne({ _id: vaga_id, empresa_id: req.user.company });
+    const vaga = await Vaga.findOne({ _id: vaga_id, empresa_id: req.user.empresa_id });
     if (!vaga) return next(new AppError('Vaga não encontrada', 404));
     if (vaga.status === 'Fechada' || vaga.status === 'Cancelada') {
       return next(new AppError('Não é possível agendar entrevistas para vagas fechadas/canceladas', 400));
@@ -29,14 +29,17 @@ exports.verificarRelacoes = catchAsync(async (req, res, next) => {
     const candidato = await Candidato.findById(candidato_id);
     if (!candidato) return next(new AppError('Candidato não encontrado', 404));
 
-    const vagaCandidato = await Vaga.findOne({ _id: candidato.vaga_id, empresa_id: req.user.company });
+    const vagaCandidato = await Vaga.findOne({ _id: candidato.vaga_id, empresa_id: req.user.empresa_id });
     if (!vagaCandidato) return next(new AppError('Candidato não pertence a esta empresa', 403));
+    if (vaga_id && candidato.vaga_id.toString() !== vaga_id.toString()) {
+      return next(new AppError('Candidato não pertence à vaga selecionada', 400));
+    }
   }
 
   if (entrevistador_id) {
     const entrevistador = await Funcionario.findOne({
       _id: entrevistador_id,
-      empresa_id: req.user.company,
+      empresa_id: req.user.empresa_id,
       status: 'Ativo'
     });
     if (!entrevistador) return next(new AppError('Entrevistador não encontrado ou inativo', 404));
@@ -50,7 +53,7 @@ exports.getByCandidato = catchAsync(async (req, res, next) => {
   const candidato = await Candidato.findById(req.params.candidatoId);
   if (!candidato) return next(new AppError('Candidato não encontrado', 404));
 
-  const vaga = await Vaga.findOne({ _id: candidato.vaga_id, empresa_id: req.user.company });
+  const vaga = await Vaga.findOne({ _id: candidato.vaga_id, empresa_id: req.user.empresa_id });
   if (!vaga) return next(new AppError('Candidato não pertence a esta empresa', 403));
 
   const entrevistas = await Entrevista.find({ candidato_id: req.params.candidatoId })
@@ -69,11 +72,11 @@ exports.getByCandidato = catchAsync(async (req, res, next) => {
 exports.getByEntrevistador = catchAsync(async (req, res, next) => {
   const entrevistador = await Funcionario.findOne({
     _id: req.params.entrevistadorId,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
   if (!entrevistador) return next(new AppError('Entrevistador não encontrado', 404));
 
-  const vagas = await Vaga.find({ empresa_id: req.user.company }).select('_id');
+  const vagas = await Vaga.find({ empresa_id: req.user.empresa_id }).select('_id');
   const vagaIds = vagas.map(v => v._id);
 
   const entrevistas = await Entrevista.find({
@@ -99,7 +102,7 @@ exports.getByData = catchAsync(async (req, res, next) => {
     return next(new AppError('Informe dataInicio e dataFim', 400));
   }
 
-  const vagas = await Vaga.find({ empresa_id: req.user.company }).select('_id');
+  const vagas = await Vaga.find({ empresa_id: req.user.empresa_id }).select('_id');
   const vagaIds = vagas.map(v => v._id);
 
   const entrevistas = await Entrevista.find({
@@ -127,7 +130,7 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
     return next(new AppError(`Status inválido. Use: ${statusValidos.join(', ')}`, 400));
   }
 
-  const vagas = await Vaga.find({ empresa_id: req.user.company }).select('_id');
+  const vagas = await Vaga.find({ empresa_id: req.user.empresa_id }).select('_id');
   const vagaIds = vagas.map(v => v._id.toString());
 
   const entrevista = await Entrevista.findById(req.params.id);
@@ -155,7 +158,7 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
 
 // Estatísticas
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
-  const vagas = await Vaga.find({ empresa_id: req.user.company }).select('_id');
+  const vagas = await Vaga.find({ empresa_id: req.user.empresa_id }).select('_id');
   const vagaIds = vagas.map(v => v._id);
 
   const porStatus = await Entrevista.aggregate([
@@ -204,7 +207,26 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
 });
 
 // CRUD padrão via factory
-exports.getAllEntrevistas = factory.getAll(Entrevista);
+exports.getAllEntrevistas = catchAsync(async (req, res, next) => {
+  const vagas = await Vaga.find({ empresa_id: req.user.empresa_id }).select('_id');
+  const vagaIds = vagas.map((v) => v._id);
+
+  const docs = await Entrevista.find({ vaga_id: { $in: vagaIds } })
+    .populate({
+      path: 'candidato_id',
+      select: 'nome email telefone vaga_id',
+      populate: { path: 'vaga_id', select: 'cargo departamento_id' }
+    })
+    .populate({ path: 'vaga_id', select: 'cargo departamento_id tipo_contrato' })
+    .populate({ path: 'entrevistador_id', select: 'nome email' })
+    .sort('-data -hora');
+
+  res.status(200).json({
+    status: 'success',
+    results: docs.length,
+    data: { data: docs }
+  });
+});
 exports.getEntrevista = factory.getOne(Entrevista, [
   { path: 'candidato_id', select: 'nome email telefone status' },
   { path: 'vaga_id', select: 'cargo departamento_id tipo_contrato' },

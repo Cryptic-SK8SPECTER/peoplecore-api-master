@@ -49,14 +49,14 @@ const filterObj = (obj, ...allowedFields) => {
 
 // ─── Middleware: setar empresa do utilizador logado ────────────
 exports.setEmpresaId = (req, res, next) => {
-  if (!req.body.empresa_id) req.body.empresa_id = req.user.company;
+  if (!req.body.empresa_id) req.body.empresa_id = req.user.empresa_id;
   next();
 };
 
 // ─── Middleware: filtrar por empresa ───────────────────────────
 exports.filterByEmpresa = (req, res, next) => {
   if (req.user.role !== 'super-admin') {
-    req.query.empresa_id = req.user.company;
+    req.query.empresa_id = req.user.empresa_id;
   }
   next();
 };
@@ -108,7 +108,7 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
 
 // ─── Obter utilizadores da minha empresa ──────────────────────
 exports.getUsuariosDaEmpresa = catchAsync(async (req, res, next) => {
-  const filter = { empresa_id: req.user.company };
+  const filter = { empresa_id: req.user.empresa_id };
 
   if (req.query.status) filter.status = req.query.status;
   if (req.query.role) filter.role = req.query.role;
@@ -135,7 +135,7 @@ exports.criarUsuario = catchAsync(async (req, res, next) => {
   if (funcionario_id) {
     const funcionario = await Funcionario.findOne({
       _id: funcionario_id,
-      empresa_id: req.user.company,
+      empresa_id: req.user.empresa_id,
     });
     if (!funcionario) {
       return next(
@@ -154,7 +154,7 @@ exports.criarUsuario = catchAsync(async (req, res, next) => {
 
   const usuario = await Usuario.create({
     funcionario_id,
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     email,
     password,
     passwordConfirm,
@@ -181,7 +181,7 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
 
   const usuario = await Usuario.findOne({
     _id: req.params.id,
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
   });
 
   if (!usuario) {
@@ -208,7 +208,7 @@ exports.alterarRole = catchAsync(async (req, res, next) => {
 
   const usuario = await Usuario.findOne({
     _id: req.params.id,
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
   });
 
   if (!usuario) {
@@ -234,7 +234,7 @@ exports.resetPasswordAdmin = catchAsync(async (req, res, next) => {
 
   const usuario = await Usuario.findOne({
     _id: req.params.id,
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
   }).select('+password');
 
   if (!usuario) {
@@ -261,7 +261,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const porStatus = await Usuario.aggregate([
     {
       $match: {
-        empresa_id: new mongoose.Types.ObjectId(req.user.company),
+        empresa_id: new mongoose.Types.ObjectId(req.user.empresa_id),
       },
     },
     { $group: { _id: '$status', count: { $sum: 1 } } },
@@ -271,7 +271,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const porRole = await Usuario.aggregate([
     {
       $match: {
-        empresa_id: new mongoose.Types.ObjectId(req.user.company),
+        empresa_id: new mongoose.Types.ObjectId(req.user.empresa_id),
       },
     },
     { $group: { _id: '$role', count: { $sum: 1 } } },
@@ -279,13 +279,13 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   ]);
 
   const nuncaLogaram = await Usuario.countDocuments({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     ultimo_login: null,
     active: true,
   });
 
   const total = await Usuario.countDocuments({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
   });
 
   res.status(200).json({

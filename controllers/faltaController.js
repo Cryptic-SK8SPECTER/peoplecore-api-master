@@ -6,7 +6,7 @@ const AppError = require('./../utils/appError');
 
 // Middleware: filtra por empresa do usuário (via funcionários da empresa)
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.company }).select('_id');
+  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   req.funcionarioIds = funcionarios.map(f => f._id);
   req.query.funcionario_id = { $in: req.funcionarioIds };
   next();
@@ -16,7 +16,7 @@ exports.filterByEmpresa = catchAsync(async (req, res, next) => {
 exports.getByFuncionario = catchAsync(async (req, res, next) => {
   const funcionario = await Funcionario.findOne({
     _id: req.params.funcionarioId,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!funcionario) {
@@ -41,7 +41,7 @@ exports.getByPeriodo = catchAsync(async (req, res, next) => {
     return next(new AppError('Data de início e fim são obrigatórias', 400));
   }
 
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.company }).select('_id');
+  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   const funcionarioIds = funcionarios.map(f => f._id);
 
   const faltas = await Falta.find({
@@ -60,7 +60,7 @@ exports.getByPeriodo = catchAsync(async (req, res, next) => {
 
 // Obter faltas não justificadas
 exports.getNaoJustificadas = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.company }).select('_id');
+  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   const funcionarioIds = funcionarios.map(f => f._id);
 
   const faltas = await Falta.find({
@@ -79,7 +79,7 @@ exports.getNaoJustificadas = catchAsync(async (req, res, next) => {
 
 // Justificar falta
 exports.justificarFalta = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.company }).select('_id');
+  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   const funcionarioIds = funcionarios.map(f => f._id.toString());
 
   const falta = await Falta.findById(req.params.id);
@@ -96,6 +96,18 @@ exports.justificarFalta = catchAsync(async (req, res, next) => {
     return next(new AppError('Esta falta já está justificada', 400));
   }
 
+  const funcionario = await Funcionario.findOne({
+    _id: falta.funcionario_id,
+    empresa_id: req.user.empresa_id,
+  });
+
+  // Regra: funcionário em férias não pode receber/justificar faltas
+  if (funcionario?.status === 'Férias') {
+    return next(
+      new AppError('Funcionário em férias não pode receber/justificar faltas', 400),
+    );
+  }
+
   falta.justificada = true;
   falta.tipo = req.body.tipo || falta.tipo;
   falta.motivo = req.body.motivo || falta.motivo;
@@ -109,7 +121,7 @@ exports.justificarFalta = catchAsync(async (req, res, next) => {
 
 // Estatísticas de faltas
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.company }).select('_id');
+  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   const funcionarioIds = funcionarios.map(f => f._id);
 
   const porTipo = await Falta.aggregate([
@@ -176,6 +188,29 @@ exports.getAllFaltas = factory.getAll(Falta);
 exports.getFalta = factory.getOne(Falta, [
   { path: 'funcionario_id', select: 'nome email' }
 ]);
-exports.createFalta = factory.createOne(Falta);
+exports.createFalta = catchAsync(async (req, res, next) => {
+  const { funcionario_id } = req.body;
+
+  const funcionario = await Funcionario.findOne({
+    _id: funcionario_id,
+    empresa_id: req.user.empresa_id,
+  });
+
+  if (!funcionario) {
+    return next(new AppError('Funcionário não encontrado', 404));
+  }
+
+  // Regra: funcionário em férias não pode receber faltas
+  if (funcionario.status === 'Férias') {
+    return next(new AppError('Funcionário em férias não pode receber faltas', 400));
+  }
+
+  const falta = await Falta.create(req.body);
+
+  res.status(201).json({
+    status: 'success',
+    data: { data: falta },
+  });
+});
 exports.updateFalta = factory.updateOne(Falta);
 exports.deleteFalta = factory.deleteOne(Falta);

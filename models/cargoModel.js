@@ -41,6 +41,16 @@ const cargoSchema = new mongoose.Schema(
       min: [0, 'Salário maximo não pode ser negativo'],
       default: 0,
     },
+    subsidio_transporte: {
+      type: Number,
+      min: [0, 'Subsídio transporte não pode ser negativo'],
+      default: 0,
+    },
+    subsidio_alimentacao: {
+      type: Number,
+      min: [0, 'Subsídio alimentação não pode ser negativo'],
+      default: 0,
+    },
     ativo: {
       type: Boolean,
       default: true,

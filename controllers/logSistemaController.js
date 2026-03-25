@@ -5,7 +5,7 @@ const AppError = require('./../utils/appError');
 
 // Middleware: define empresa_id do usuário logado
 exports.setEmpresaId = (req, res, next) => {
-  if (!req.body.empresa_id) req.body.empresa_id = req.user.company;
+  if (!req.body.empresa_id) req.body.empresa_id = req.user.empresa_id;
   if (!req.body.usuario_id) req.body.usuario_id = req.user._id;
   if (!req.body.ip) req.body.ip = req.ip || req.connection.remoteAddress;
   next();
@@ -13,14 +13,14 @@ exports.setEmpresaId = (req, res, next) => {
 
 // Middleware: filtra por empresa do usuário
 exports.filterByEmpresa = (req, res, next) => {
-  req.query.empresa_id = req.user.company;
+  req.query.empresa_id = req.user.empresa_id;
   next();
 };
 
 // Obter por módulo
 exports.getByModulo = catchAsync(async (req, res, next) => {
   const logs = await LogSistema.find({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     modulo: req.params.modulo
   })
     .populate('usuario_id', 'email')
@@ -37,7 +37,7 @@ exports.getByModulo = catchAsync(async (req, res, next) => {
 // Obter por severidade
 exports.getBySeveridade = catchAsync(async (req, res, next) => {
   const logs = await LogSistema.find({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     severidade: req.params.severidade
   })
     .populate('usuario_id', 'email')
@@ -54,7 +54,7 @@ exports.getBySeveridade = catchAsync(async (req, res, next) => {
 // Obter por usuário
 exports.getByUsuario = catchAsync(async (req, res, next) => {
   const logs = await LogSistema.find({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     usuario_id: req.params.usuarioId
   })
     .sort('-data')
@@ -76,7 +76,7 @@ exports.getByPeriodo = catchAsync(async (req, res, next) => {
   }
 
   const logs = await LogSistema.find({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     data: { $gte: new Date(dataInicio), $lte: new Date(dataFim) }
   })
     .populate('usuario_id', 'email')
@@ -99,7 +99,7 @@ exports.pesquisar = catchAsync(async (req, res, next) => {
   }
 
   const logs = await LogSistema.find({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     $text: { $search: termo }
   })
     .populate('usuario_id', 'email')
@@ -116,7 +116,7 @@ exports.pesquisar = catchAsync(async (req, res, next) => {
 // Estatísticas
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const mongoose = require('mongoose');
-  const empresaId = mongoose.Types.ObjectId(req.user.company);
+  const empresaId = mongoose.Types.ObjectId(req.user.empresa_id);
 
   const porModulo = await LogSistema.aggregate([
     { $match: { empresa_id: empresaId } },
@@ -143,7 +143,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   ]);
 
   const errosRecentes = await LogSistema.countDocuments({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     severidade: { $in: ['Erro', 'Crítico'] },
     data: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
   });

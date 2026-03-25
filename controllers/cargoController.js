@@ -3,18 +3,10 @@ const Funcionario = require('./../models/funcionarioModel');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
+const tenantController = require('./tenantController');
 
-// Middleware: define empresa_id do usuário logado
-exports.setEmpresaId = (req, res, next) => {
-  if (!req.body.empresa_id) req.body.empresa_id = req.user.empresa_id;
-  next();
-};
-
-// Middleware: filtra por empresa do usuário
-exports.filterByEmpresa = (req, res, next) => {
-  req.query.empresa_id = req.user.empresa_id;
-  next();
-};
+exports.setEmpresaId = tenantController.setEmpresaId;
+exports.filterByEmpresa = tenantController.filterByEmpresa;
 
 // Obter cargos ativos
 exports.getAtivos = catchAsync(async (req, res, next) => {

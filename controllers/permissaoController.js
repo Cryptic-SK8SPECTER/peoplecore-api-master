@@ -6,7 +6,7 @@ const AppError = require('./../utils/appError');
 
 // Middleware: filtra por perfis da empresa do usuário
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
-  const perfis = await Perfil.find({ empresa_id: req.user.company }).select('_id');
+  const perfis = await Perfil.find({ empresa_id: req.user.empresa_id }).select('_id');
   req.perfilIds = perfis.map(p => p._id);
   req.query.perfil_id = { $in: req.perfilIds };
   next();
@@ -18,7 +18,7 @@ exports.verificarPerfil = catchAsync(async (req, res, next) => {
 
   const perfil = await Perfil.findOne({
     _id: req.body.perfil_id,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!perfil) {
@@ -48,7 +48,7 @@ exports.verificarDuplicidade = catchAsync(async (req, res, next) => {
 exports.getByPerfil = catchAsync(async (req, res, next) => {
   const perfil = await Perfil.findOne({
     _id: req.params.perfilId,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!perfil) {
@@ -75,7 +75,7 @@ exports.atualizarEmMassa = catchAsync(async (req, res, next) => {
 
   const perfil = await Perfil.findOne({
     _id: req.params.perfilId,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!perfil) {
@@ -110,7 +110,7 @@ exports.atualizarEmMassa = catchAsync(async (req, res, next) => {
 exports.inicializarPerfil = catchAsync(async (req, res, next) => {
   const perfil = await Perfil.findOne({
     _id: req.params.perfilId,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!perfil) {
@@ -153,7 +153,7 @@ exports.inicializarPerfil = catchAsync(async (req, res, next) => {
 
 // Matriz completa de permissões (todos os perfis da empresa)
 exports.getMatrizPermissoes = catchAsync(async (req, res, next) => {
-  const perfis = await Perfil.find({ empresa_id: req.user.company }).sort('nome');
+  const perfis = await Perfil.find({ empresa_id: req.user.empresa_id }).sort('nome');
 
   const matriz = await Promise.all(
     perfis.map(async (perfil) => {

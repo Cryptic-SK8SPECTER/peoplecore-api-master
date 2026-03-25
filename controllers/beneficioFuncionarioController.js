@@ -8,10 +8,10 @@ const AppError = require('./../utils/appError');
 // Middleware: filtra por empresa (via funcionário)
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
   const funcionarioIds = await Funcionario.find({
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   }).distinct('_id');
 
-  req.query.funcionario_id = { in: funcionarioIds };
+  req.query.funcionario_id = { $in: funcionarioIds };
   next();
 });
 
@@ -22,7 +22,7 @@ exports.verificarRelacoes = catchAsync(async (req, res, next) => {
   if (funcionario_id) {
     const funcionario = await Funcionario.findOne({
       _id: funcionario_id,
-      empresa_id: req.user.company
+      empresa_id: req.user.empresa_id
     });
     if (!funcionario) {
       return next(new AppError('Funcionário não encontrado na sua empresa', 404));
@@ -32,7 +32,7 @@ exports.verificarRelacoes = catchAsync(async (req, res, next) => {
   if (beneficio_id) {
     const beneficio = await Beneficio.findOne({
       _id: beneficio_id,
-      empresa_id: req.user.company,
+      empresa_id: req.user.empresa_id,
       status: 'Ativo'
     });
     if (!beneficio) {
@@ -62,12 +62,21 @@ exports.atribuirBeneficio = catchAsync(async (req, res, next) => {
     return next(new AppError('Este funcionário já possui este benefício ativo', 400));
   }
 
+  const beneficioBase = await Beneficio.findById(beneficio_id).select('valor');
+  const valorFinal = valor !== undefined && valor !== null ? Number(valor) : Number(beneficioBase?.valor);
+  if (Number.isNaN(valorFinal) || valorFinal < 0) {
+    return next(new AppError('Valor inválido para a atribuição do benefício', 400));
+  }
+  if (data_fim && data_inicio && new Date(data_fim) < new Date(data_inicio)) {
+    return next(new AppError('Data de término não pode ser inferior à data de início', 400));
+  }
+
   const atribuicao = await BeneficioFuncionario.create({
     funcionario_id,
     beneficio_id,
     data_inicio: data_inicio || Date.now(),
     data_fim,
-    valor,
+    valor: valorFinal,
     observacoes
   });
 
@@ -81,27 +90,44 @@ exports.atribuirBeneficio = catchAsync(async (req, res, next) => {
 
 // Atribuição em massa (por departamento)
 exports.atribuirEmMassa = catchAsync(async (req, res, next) => {
-  const { departamento_id, beneficio_id, data_inicio, valor } = req.body;
+  const { departamento_id, beneficio_id, data_inicio, valor, funcionario_ids } = req.body;
 
-  if (!departamento_id || !beneficio_id) {
-    return next(new AppError('Departamento e benefício são obrigatórios', 400));
+  if (!beneficio_id) {
+    return next(new AppError('Benefício é obrigatório', 400));
+  }
+  if (!departamento_id && (!Array.isArray(funcionario_ids) || funcionario_ids.length === 0)) {
+    return next(new AppError('Informe um departamento ou uma lista de funcionários', 400));
   }
 
   const beneficio = await Beneficio.findOne({
     _id: beneficio_id,
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     status: 'Ativo'
   });
 
   if (!beneficio) {
     return next(new AppError('Benefício não encontrado ou inativo', 404));
   }
+  if (valor !== undefined && valor !== null && (Number.isNaN(Number(valor)) || Number(valor) < 0)) {
+    return next(new AppError('Valor inválido para atribuição em massa', 400));
+  }
 
-  const funcionarios = await Funcionario.find({
-    empresa_id: req.user.company,
-    departamento_id,
-    status: 'Ativo'
-  });
+  let funcionarios;
+  if (Array.isArray(funcionario_ids) && funcionario_ids.length > 0) {
+    const filtro = {
+      empresa_id: req.user.empresa_id,
+      _id: { $in: funcionario_ids },
+      status: 'Ativo'
+    };
+    if (departamento_id) filtro.departamento_id = departamento_id;
+    funcionarios = await Funcionario.find(filtro);
+  } else {
+    funcionarios = await Funcionario.find({
+      empresa_id: req.user.empresa_id,
+      departamento_id,
+      status: 'Ativo'
+    });
+  }
 
   if (!funcionarios.length) {
     return next(new AppError('Nenhum funcionário ativo encontrado neste departamento', 404));
@@ -122,7 +148,7 @@ exports.atribuirEmMassa = catchAsync(async (req, res, next) => {
         funcionario_id: func._id,
         beneficio_id,
         data_inicio: data_inicio || Date.now(),
-        valor: valor || beneficio.valor
+        valor: valor !== undefined && valor !== null ? Number(valor) : Number(beneficio.valor)
       });
       atribuidos++;
     } else {
@@ -149,7 +175,7 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
   }
 
   const funcionarioIds = await Funcionario.find({
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   }).distinct('_id');
 
   const atribuicao = await BeneficioFuncionario.findOne({
@@ -179,7 +205,7 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
 exports.getByFuncionario = catchAsync(async (req, res, next) => {
   const funcionario = await Funcionario.findOne({
     _id: req.params.funcionarioId,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!funcionario) {
@@ -205,7 +231,7 @@ exports.getByFuncionario = catchAsync(async (req, res, next) => {
 exports.getByBeneficio = catchAsync(async (req, res, next) => {
   const beneficio = await Beneficio.findOne({
     _id: req.params.beneficioId,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!beneficio) {
@@ -230,7 +256,7 @@ exports.getByBeneficio = catchAsync(async (req, res, next) => {
 // Estatísticas
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const funcionarioIds = await Funcionario.find({
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   }).distinct('_id');
 
   const stats = await BeneficioFuncionario.aggregate([
@@ -282,9 +308,34 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   });
 });
 
-// CRUD padrão via factory
-exports.getAllBeneficiosFuncionario = factory.getAll(BeneficioFuncionario);
-exports.getBeneficioFuncionario = factory.getOne(BeneficioFuncionario);
+// CRUD/listagens
+exports.getAllBeneficiosFuncionario = catchAsync(async (req, res, next) => {
+  const filter = {};
+  if (req.query.funcionario_id) filter.funcionario_id = req.query.funcionario_id;
+  if (req.query.beneficio_id) filter.beneficio_id = req.query.beneficio_id;
+  if (req.query.status) filter.status = req.query.status;
+
+  const limit = req.query.limit ? Number(req.query.limit) : 100;
+  const sort = req.query.sort || '-createdAt';
+
+  const docs = await BeneficioFuncionario.find(filter)
+    .populate('funcionario_id', 'nome email departamento_id cargo_id')
+    .populate('beneficio_id', 'nome tipo valor frequencia status')
+    .sort(sort)
+    .limit(Number.isNaN(limit) ? 100 : limit);
+
+  res.status(200).json({
+    status: 'success',
+    results: docs.length,
+    data: {
+      data: docs
+    }
+  });
+});
+exports.getBeneficioFuncionario = factory.getOne(BeneficioFuncionario, [
+  { path: 'funcionario_id', select: 'nome email departamento_id cargo_id' },
+  { path: 'beneficio_id', select: 'nome tipo valor frequencia status' }
+]);
 exports.updateBeneficioFuncionario = factory.updateOne(BeneficioFuncionario);
 exports.deleteBeneficioFuncionario = factory.deleteOne(BeneficioFuncionario);
-exports.createBeneficioFuncionario = factory.deleteOne(BeneficioFuncionario);
+exports.createBeneficioFuncionario = factory.createOne(BeneficioFuncionario);

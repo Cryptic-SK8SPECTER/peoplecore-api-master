@@ -11,6 +11,24 @@ router.use(authController.protect);
 router.get('/ativos', funcionarioController.getAtivos);
 router.get('/departamento/:departamentoId', funcionarioController.getByDepartamento);
 
+// ─────────────────────────────────────────────────────────────
+// Edição de dados pessoais (colaborador só edita o próprio)
+// Declaramos ANTES do restrictTo para permitir role='funcionario'.
+// ─────────────────────────────────────────────────────────────
+router.patch(
+  '/:id',
+  funcionarioController.restrictToOwnFuncionario,
+  funcionarioController.updateFuncionario,
+);
+
+// Upload de foto do funcionário (public/users)
+router.patch(
+  '/:id/foto',
+  funcionarioController.restrictToOwnFuncionario,
+  funcionarioController.uploadFuncionarioPhoto,
+  funcionarioController.updateFuncionarioFoto,
+);
+
 // Rotas restritas a admin/rh
 router.use(authController.restrictTo('admin', 'rh', 'super-admin'));
 

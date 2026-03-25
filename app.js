@@ -38,7 +38,10 @@ const descontoRouter = require('./routes/descontoRoutes');
 const reciboRouter = require('./routes/reciboRoutes');
 const candidatoRouter = require('./routes/candidatoRoutes');
 const entrevistaRouter = require('./routes/entrevistaRoutes');
+const vagaRouter = require('./routes/vagaRoutes');
+const contratacaoRouter = require('./routes/contratacaoRoutes');
 const documentoRouter = require('./routes/documentoRoutes');
+const beneficioRouter = require('./routes/beneficioRoutes');
 const beneficioFuncionarioRouter = require('./routes/beneficioFuncionarioRoutes');
 const perfilRouter = require('./routes/perfilRoutes');
 const permissaoRouter = require('./routes/permissaoRoutes');
@@ -90,6 +93,7 @@ const corsOptions = {
           'http://localhost:3000',
           'http://localhost:8080',
           'http://localhost:8081',
+          'cryptic-sk8specter.tailc8215c.ts.net',
         ];
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       callback(null, true);
@@ -264,10 +268,13 @@ app.use('/api/v1/descontos', descontoRouter);
 app.use('/api/v1/recibos', reciboRouter);
 
 // ─── Recrutamento ─────────────────────────────────────────────
+app.use('/api/v1/vagas', vagaRouter);
 app.use('/api/v1/candidatos', candidatoRouter);
 app.use('/api/v1/entrevistas', entrevistaRouter);
+app.use('/api/v1/contratacoes', contratacaoRouter);
 
 // ─── Benefícios ───────────────────────────────────────────────
+app.use('/api/v1/beneficios', beneficioRouter);
 app.use('/api/v1/beneficios-funcionario', beneficioFuncionarioRouter);
 
 // ─── Perfis e Permissões ──────────────────────────────────────

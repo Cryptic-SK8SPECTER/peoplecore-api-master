@@ -63,6 +63,25 @@ const funcionarioSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    nacionalidade: {
+      type: String,
+      trim: true,
+    },
+    // Contato de Emergência (utilizado na UI e exibido no perfil)
+    contacto_emergencia: {
+      nome: {
+        type: String,
+        trim: true,
+      },
+      relacao: {
+        type: String,
+        trim: true,
+      },
+      telefone: {
+        type: String,
+        trim: true,
+      },
+    },
     tipo_contrato: {
       type: String,
       enum: [
@@ -100,6 +119,12 @@ const funcionarioSchema = new mongoose.Schema(
     },
     foto_url: {
       type: String,
+      default: null,
+    },
+    // Conta bancária usada para processamento salarial (armazenamento e exibição)
+    conta_bancaria: {
+      type: String,
+      trim: true,
       default: null,
     },
   },

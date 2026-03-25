@@ -6,7 +6,7 @@ const AppError = require('./../utils/appError');
 
 // Middleware: filtra por empresa do usuário
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.company }).select('_id');
+  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   req.funcionarioIds = funcionarios.map(f => f._id);
   req.query.funcionario_id = { $in: req.funcionarioIds };
   next();
@@ -16,7 +16,7 @@ exports.filterByEmpresa = catchAsync(async (req, res, next) => {
 exports.getByFuncionario = catchAsync(async (req, res, next) => {
   const funcionario = await Funcionario.findOne({
     _id: req.params.funcionarioId,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!funcionario) {
@@ -38,7 +38,7 @@ exports.getSaldoAtual = catchAsync(async (req, res, next) => {
   const anoAtual = req.query.ano ? Number(req.query.ano) : new Date().getFullYear();
 
   const funcionarios = await Funcionario.find({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     status: 'Ativo'
   }).select('_id nome departamento_id').populate('departamento_id', 'nome');
 
@@ -84,7 +84,7 @@ exports.inicializarAno = catchAsync(async (req, res, next) => {
   }
 
   const funcionarios = await Funcionario.find({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     status: 'Ativo'
   }).select('_id');
 
@@ -133,7 +133,7 @@ exports.atualizarDiasGozados = catchAsync(async (req, res, next) => {
   // Verificar se funcionário pertence à empresa
   const funcionario = await Funcionario.findOne({
     _id: saldo.funcionario_id,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!funcionario) {
@@ -158,7 +158,7 @@ exports.atualizarDiasGozados = catchAsync(async (req, res, next) => {
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const anoAtual = req.query.ano ? Number(req.query.ano) : new Date().getFullYear();
 
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.company }).select('_id');
+  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   const funcionarioIds = funcionarios.map(f => f._id);
 
   const resumo = await SaldoFerias.aggregate([

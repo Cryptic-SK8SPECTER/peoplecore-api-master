@@ -18,6 +18,10 @@ const vagaSchema = new mongoose.Schema({
     trim: true,
     maxlength: [100, 'Cargo não pode exceder 100 caracteres']
   },
+  cargo_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Cargo'
+  },
   tipo_contrato: {
     type: String,
     enum: ['Efetivo', 'Termo Certo', 'Termo Incerto', 'Estágio', 'Prestação Serviços'],

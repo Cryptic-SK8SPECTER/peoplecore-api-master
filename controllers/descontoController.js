@@ -3,24 +3,16 @@ const Funcionario = require('./../models/funcionarioModel');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
+const tenantController = require('./tenantController');
 
-// Middleware: define empresa_id do usuário logado
-exports.setEmpresaId = (req, res, next) => {
-  if (!req.body.empresa_id) req.body.empresa_id = req.user.company;
-  next();
-};
-
-// Middleware: filtra por empresa do usuário
-exports.filterByEmpresa = (req, res, next) => {
-  req.query.empresa_id = req.user.company;
-  next();
-};
+exports.setEmpresaId = tenantController.setEmpresaId;
+exports.filterByEmpresa = tenantController.filterByEmpresa;
 
 // Obter por funcionário
 exports.getByFuncionario = catchAsync(async (req, res, next) => {
   const funcionario = await Funcionario.findOne({
     _id: req.params.funcionarioId,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!funcionario) {
@@ -46,7 +38,7 @@ exports.getByMes = catchAsync(async (req, res, next) => {
   }
 
   const descontos = await Desconto.find({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     mes_aplicacao: mes
   })
     .populate('funcionario_id', 'nome email departamento_id')
@@ -62,7 +54,7 @@ exports.getByMes = catchAsync(async (req, res, next) => {
 // Obter por tipo
 exports.getByTipo = catchAsync(async (req, res, next) => {
   const descontos = await Desconto.find({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     tipo: req.params.tipo
   })
     .populate('funcionario_id', 'nome email')
@@ -78,7 +70,7 @@ exports.getByTipo = catchAsync(async (req, res, next) => {
 // Obter pendentes
 exports.getPendentes = catchAsync(async (req, res, next) => {
   const descontos = await Desconto.find({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     status: 'Pendente'
   })
     .populate('funcionario_id', 'nome email departamento_id')
@@ -102,7 +94,7 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
 
   const desconto = await Desconto.findOne({
     _id: req.params.id,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!desconto) {
@@ -131,7 +123,7 @@ exports.aplicarRecorrentes = catchAsync(async (req, res, next) => {
   }
 
   const recorrentes = await Desconto.find({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     recorrente: true,
     status: { $in: ['Pendente', 'Aplicado'] }
   });
@@ -174,7 +166,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const mongoose = require('mongoose');
 
   const porTipo = await Desconto.aggregate([
-    { $match: { empresa_id: mongoose.Types.ObjectId(req.user.company) } },
+    { $match: { empresa_id: mongoose.Types.ObjectId(req.user.empresa_id) } },
     {
       $group: {
         _id: '$tipo',
@@ -189,7 +181,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const porMes = await Desconto.aggregate([
     {
       $match: {
-        empresa_id: mongoose.Types.ObjectId(req.user.company),
+        empresa_id: mongoose.Types.ObjectId(req.user.empresa_id),
         status: 'Aplicado'
       }
     },
@@ -205,7 +197,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   ]);
 
   const porStatus = await Desconto.aggregate([
-    { $match: { empresa_id: mongoose.Types.ObjectId(req.user.company) } },
+    { $match: { empresa_id: mongoose.Types.ObjectId(req.user.empresa_id) } },
     {
       $group: {
         _id: '$status',

@@ -5,7 +5,7 @@ const AppError = require('./../utils/appError');
 
 // Middleware: filtra por empresa do usuário
 exports.filterByEmpresa = (req, res, next) => {
-  req.query.empresa_id = req.user.company;
+  req.query.empresa_id = req.user.empresa_id;
   next();
 };
 
@@ -21,7 +21,7 @@ exports.createApiKey = catchAsync(async (req, res, next) => {
   const chave_hash = ApiKey.hashKey(key);
 
   const apiKey = await ApiKey.create({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     nome,
     chave_hash,
     chave_preview: preview,
@@ -51,7 +51,7 @@ exports.createApiKey = catchAsync(async (req, res, next) => {
 exports.regenerarChave = catchAsync(async (req, res, next) => {
   const apiKey = await ApiKey.findOne({
     _id: req.params.id,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!apiKey) {
@@ -83,7 +83,7 @@ exports.regenerarChave = catchAsync(async (req, res, next) => {
 exports.toggleStatus = catchAsync(async (req, res, next) => {
   const apiKey = await ApiKey.findOne({
     _id: req.params.id,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!apiKey) {
@@ -148,7 +148,7 @@ exports.validarChave = catchAsync(async (req, res, next) => {
 // Estatísticas
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const stats = await ApiKey.aggregate([
-    { $match: { empresa_id: req.user.company } },
+    { $match: { empresa_id: req.user.empresa_id } },
     {
       $group: {
         _id: '$status',
@@ -157,10 +157,10 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
     }
   ]);
 
-  const total = await ApiKey.countDocuments({ empresa_id: req.user.company });
+  const total = await ApiKey.countDocuments({ empresa_id: req.user.empresa_id });
 
   const semUso = await ApiKey.countDocuments({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     ultimo_uso: null
   });
 

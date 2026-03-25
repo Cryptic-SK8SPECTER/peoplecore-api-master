@@ -17,6 +17,16 @@ const itemFolhaSchema = new mongoose.Schema({
     required: [true, 'Salário base é obrigatório'],
     min: [0, 'Salário base não pode ser negativo']
   },
+  subsidio_transporte_valor: {
+    type: Number,
+    default: 0,
+    min: [0, 'Subsídio transporte não pode ser negativo']
+  },
+  subsidio_alimentacao_valor: {
+    type: Number,
+    default: 0,
+    min: [0, 'Subsídio alimentação não pode ser negativo']
+  },
   horas_extras_valor: {
     type: Number,
     default: 0,
@@ -47,8 +57,13 @@ const itemFolhaSchema = new mongoose.Schema({
 
 // Calculate salario_liquido before saving
 itemFolhaSchema.pre('save', function(next) {
-  this.salario_liquido = this.salario_base + this.horas_extras_valor + 
-                         this.bonus_total - this.descontos_total;
+  this.salario_liquido =
+    (this.salario_base || 0) +
+    (this.subsidio_transporte_valor || 0) +
+    (this.subsidio_alimentacao_valor || 0) +
+    (this.horas_extras_valor || 0) +
+    (this.bonus_total || 0) -
+    (this.descontos_total || 0);
   next();
 });
 

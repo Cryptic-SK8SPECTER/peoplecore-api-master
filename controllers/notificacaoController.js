@@ -7,7 +7,7 @@ const AppError = require('./../utils/appError');
 
 // Define empresa_id e usuario_id automaticamente
 exports.setEmpresaAndUsuario = (req, res, next) => {
-  if (!req.body.empresa_id) req.body.empresa_id = req.user.company;
+  if (!req.body.empresa_id) req.body.empresa_id = req.user.empresa_id;
   if (!req.body.usuario_id) req.body.usuario_id = req.user._id;
   next();
 };

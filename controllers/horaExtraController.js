@@ -7,7 +7,7 @@ const AppError = require('./../utils/appError');
 
 // Middleware: filtra por empresa do usuário
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.company }).select('_id');
+  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   req.funcionarioIds = funcionarios.map(f => f._id);
   req.query.funcionario_id = { $in: req.funcionarioIds };
   next();
@@ -38,7 +38,7 @@ exports.verificarFerias = catchAsync(async (req, res, next) => {
 exports.getByFuncionario = catchAsync(async (req, res, next) => {
   const funcionario = await Funcionario.findOne({
     _id: req.params.funcionarioId,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!funcionario) {
@@ -58,7 +58,7 @@ exports.getByFuncionario = catchAsync(async (req, res, next) => {
 
 // Obter pendentes
 exports.getPendentes = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.company }).select('_id');
+  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   const funcionarioIds = funcionarios.map(f => f._id);
 
   const pendentes = await HoraExtra.find({
@@ -84,7 +84,7 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
     return next(new AppError(`Status inválido. Use: ${statusValidos.join(', ')}`, 400));
   }
 
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.company }).select('_id');
+  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   const funcionarioIds = funcionarios.map(f => f._id.toString());
 
   const horaExtra = await HoraExtra.findById(req.params.id);
@@ -128,7 +128,7 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
 
 // Estatísticas
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.company }).select('_id');
+  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   const funcionarioIds = funcionarios.map(f => f._id);
 
   const porStatus = await HoraExtra.aggregate([

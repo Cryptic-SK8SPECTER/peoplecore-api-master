@@ -5,20 +5,20 @@ const AppError = require('./../utils/appError');
 
 // Middleware: filtra por empresa do usuário logado
 exports.setEmpresaId = (req, res, next) => {
-  if (!req.body.empresa_id) req.body.empresa_id = req.user.company;
+  if (!req.body.empresa_id) req.body.empresa_id = req.user.empresa_id;
   next();
 };
 
 // Middleware: filtra apenas tipos da empresa do usuário
 exports.filterByEmpresa = (req, res, next) => {
-  req.query.empresa_id = req.user.company;
+  req.query.empresa_id = req.user.empresa_id;
   next();
 };
 
 // Obter apenas tipos ativos
 exports.getAtivos = catchAsync(async (req, res, next) => {
   const tipos = await TipoLicenca.find({
-    empresa_id: req.user.company,
+    empresa_id: req.user.empresa_id,
     ativo: true
   }).sort('nome');
 
@@ -35,7 +35,7 @@ exports.getAtivos = catchAsync(async (req, res, next) => {
 exports.toggleAtivo = catchAsync(async (req, res, next) => {
   const tipo = await TipoLicenca.findOne({
     _id: req.params.id,
-    empresa_id: req.user.company
+    empresa_id: req.user.empresa_id
   });
 
   if (!tipo) {
