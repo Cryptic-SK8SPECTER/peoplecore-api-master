@@ -9,8 +9,8 @@ router.use(authController.protect);
 router.use('/:avaliacaoId/funcionarios', avaliacaoFuncionarioRouter);
 // Rotas públicas (usuários autenticados)
 router.get('/ativas', avaliacaoController.getAtivas);
-// Rotas restritas a admin/rh
-router.use(authController.restrictTo('admin', 'rh'));
+// Rotas restritas à liderança (admin/rh/gestor)
+router.use(authController.allowGroup('LEADERSHIP'));
 router
   .route('/')
   .get(

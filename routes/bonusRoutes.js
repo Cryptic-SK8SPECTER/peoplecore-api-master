@@ -7,13 +7,13 @@ const router = express.Router();
 // Todas as rotas requerem autenticação
 router.use(authController.protect);
 
-// Rotas de consulta (usuários autenticados)
-router.get('/pendentes', bonusController.filterByEmpresa, bonusController.getPendentes);
-router.get('/funcionario/:funcionarioId', bonusController.getByFuncionario);
-router.get('/tipo/:tipo', bonusController.getByTipo);
+// Rotas de consulta
+router.get('/pendentes', authController.allowGroup('PAYROLL'), bonusController.filterByEmpresa, bonusController.getPendentes);
+router.get('/funcionario/:funcionarioId', authController.allowGroup('PAYROLL'), bonusController.getByFuncionario);
+router.get('/tipo/:tipo', authController.allowGroup('PAYROLL'), bonusController.getByTipo);
 
-// Rotas restritas a admin/rh
-router.use(authController.restrictTo('admin', 'rh'));
+// Rotas restritas a payroll (admin/financeiro)
+router.use(authController.allowGroup('PAYROLL'));
 
 router.get('/estatisticas', bonusController.getEstatisticas);
 

@@ -3,6 +3,10 @@ const Funcionario = require('./../models/funcionarioModel');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
+const {
+  getAttendanceEligibility,
+  getAttendanceBlockMessage,
+} = require('./../utils/attendanceEligibility');
 
 // Middleware: filtra por empresa do usuário
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
@@ -12,6 +16,51 @@ exports.filterByEmpresa = catchAsync(async (req, res, next) => {
   req.funcionarioIds = funcionarios.map((f) => f._id);
   req.query.funcionario_id = { $in: req.funcionarioIds };
   next();
+});
+
+// Diagnóstico: validar elegibilidade de presença/falta por funcionário e data
+exports.getElegibilidade = catchAsync(async (req, res, next) => {
+  const { funcionarioId } = req.params;
+  const dataRef = req.query.data ? new Date(req.query.data) : new Date();
+  if (Number.isNaN(dataRef.getTime())) {
+    return next(new AppError('Data inválida. Use formato YYYY-MM-DD', 400));
+  }
+  dataRef.setHours(0, 0, 0, 0);
+
+  const funcionario = await Funcionario.findById(funcionarioId).select(
+    '_id nome empresa_id status tipo_contrato data_admissao data_saida',
+  );
+  if (!funcionario) {
+    return next(new AppError('Funcionário não encontrado', 404));
+  }
+
+  const role = String(req.user?.role || '').toLowerCase();
+  if (role !== 'super-admin' && String(funcionario.empresa_id) !== String(req.user.empresa_id)) {
+    return next(new AppError('Sem permissão para consultar funcionário de outra empresa', 403));
+  }
+
+  const eligibility = await getAttendanceEligibility({
+    funcionarioId: funcionario._id,
+    empresaId: role === 'super-admin' ? undefined : req.user.empresa_id,
+    date: dataRef,
+  });
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      funcionario: {
+        _id: funcionario._id,
+        nome: funcionario.nome,
+        empresa_id: funcionario.empresa_id,
+        status: funcionario.status,
+        tipo_contrato: funcionario.tipo_contrato,
+      },
+      data: dataRef.toISOString().split('T')[0],
+      elegibilidade: eligibility,
+      mensagem_presenca: getAttendanceBlockMessage(eligibility, 'presenca'),
+      mensagem_falta: getAttendanceBlockMessage(eligibility, 'falta'),
+    },
+  });
 });
 
 // Marcar entrada
@@ -25,39 +74,15 @@ exports.marcarEntrada = catchAsync(async (req, res, next) => {
     return next(new AppError('Funcionário não encontrado', 404));
   }
 
-  // Regra: funcionário em férias não pode marcar presenças
-  if (funcionario.status === "Férias") {
-    return next(new AppError("Funcionário em férias não pode marcar presenças", 400));
-  }
-
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
-
-  // Validação por tipo de contrato (início/fim)
-  const tipo = funcionario.tipo_contrato;
-  const periodTipos = new Set(["Termo Incerto", "Termo Certo", "Estágio"]);
-  if (tipo && periodTipos.has(tipo)) {
-    // Início
-    if (funcionario.data_admissao) {
-      const start = new Date(funcionario.data_admissao);
-      if (!isNaN(start.getTime())) {
-        start.setHours(0, 0, 0, 0);
-        if (hoje.getTime() < start.getTime()) {
-          return next(new AppError("Contrato ainda não iniciado", 400));
-        }
-      }
-    }
-
-    // Fim
-    if (funcionario.data_saida) {
-      const end = new Date(funcionario.data_saida);
-      if (!isNaN(end.getTime())) {
-        end.setHours(23, 59, 59, 999);
-        if (hoje.getTime() > end.getTime()) {
-          return next(new AppError("Contrato expirado", 400));
-        }
-      }
-    }
+  const eligibility = await getAttendanceEligibility({
+    funcionarioId: funcionario._id,
+    empresaId: req.user.empresa_id,
+    date: hoje,
+  });
+  if (!eligibility.allowedToMark) {
+    return next(new AppError(getAttendanceBlockMessage(eligibility, 'presenca'), 400));
   }
 
   const presencaExistente = await Presenca.findOne({
@@ -103,9 +128,10 @@ exports.marcarEntrada = catchAsync(async (req, res, next) => {
 exports.marcarSaida = catchAsync(async (req, res, next) => {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
+  const funcionarioId = req.body.funcionario_id || req.user.funcionario_id;
 
   const presenca = await Presenca.findOne({
-    funcionario_id: req.body.funcionario_id,
+    funcionario_id: funcionarioId,
     data: hoje,
   });
 
@@ -113,41 +139,13 @@ exports.marcarSaida = catchAsync(async (req, res, next) => {
     return next(new AppError('Não existe registo de entrada para hoje', 400));
   }
 
-  const funcionario = await Funcionario.findOne({
-    _id: req.body.funcionario_id,
-    empresa_id: req.user.empresa_id,
+  const eligibility = await getAttendanceEligibility({
+    funcionarioId,
+    empresaId: req.user.empresa_id,
+    date: hoje,
   });
-
-  // Regra: funcionário em férias não pode marcar presenças
-  if (funcionario?.status === "Férias") {
-    return next(new AppError("Funcionário em férias não pode marcar presenças", 400));
-  }
-
-  // Validação por tipo de contrato (início/fim)
-  const tipo = funcionario?.tipo_contrato;
-  const periodTipos = new Set(["Termo Incerto", "Termo Certo", "Estágio"]);
-  if (tipo && periodTipos.has(tipo)) {
-    // Início
-    if (funcionario?.data_admissao) {
-      const start = new Date(funcionario.data_admissao);
-      if (!isNaN(start.getTime())) {
-        start.setHours(0, 0, 0, 0);
-        if (hoje.getTime() < start.getTime()) {
-          return next(new AppError("Contrato ainda não iniciado", 400));
-        }
-      }
-    }
-
-    // Fim
-    if (funcionario?.data_saida) {
-      const end = new Date(funcionario.data_saida);
-      if (!isNaN(end.getTime())) {
-        end.setHours(23, 59, 59, 999);
-        if (hoje.getTime() > end.getTime()) {
-          return next(new AppError("Contrato expirado", 400));
-        }
-      }
-    }
+  if (!eligibility.allowedToMark) {
+    return next(new AppError(getAttendanceBlockMessage(eligibility, 'presenca'), 400));
   }
 
   if (presenca.hora_saida) {

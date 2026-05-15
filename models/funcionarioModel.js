@@ -8,6 +8,11 @@ const funcionarioSchema = new mongoose.Schema(
       ref: 'Empresa',
       required: [true, 'Empresa é obrigatória'],
     },
+    sub_unidade_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SubUnidade',
+      default: null,
+    },
     departamento_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Departamento',
@@ -112,20 +117,85 @@ const funcionarioSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Funcionario',
     },
+    codigo_interno: {
+      type: String,
+      trim: true,
+    },
+    regime_trabalho: {
+      type: String,
+      enum: ['Integral', 'Parcial', 'Remoto', 'Híbrido'],
+    },
+    local_trabalho: {
+      type: String,
+      trim: true,
+    },
+    nivel_escolaridade: {
+      type: String,
+    },
+    cursos_certificacoes: {
+      type: String,
+    },
+    idiomas: {
+      type: String,
+    },
+    competencias: {
+      type: String,
+    },
+    inss: {
+      type: String,
+      trim: true,
+    },
+    visto_trabalho: {
+      type: String,
+      trim: true,
+    },
+    exames_admissionais: {
+      type: String,
+    },
+    condicoes_medicas: {
+      type: String,
+    },
+    treinamentos_seguranca: {
+      type: String,
+    },
+    documentos: [
+      {
+        url: String,
+        nome: String,
+      }
+    ],
     status: {
       type: String,
-      enum: ['Ativo', 'Inativo', 'Férias', 'Licença', 'Demitido'],
+      enum: [
+        'Ativo',
+        'Inativo',
+        'Férias',
+        'Licença',
+        'Demitido',
+        'Remoto',
+        'Missão',
+        'Trabalho Externo',
+        'Suspenso',
+        'Falecido',
+      ],
       default: 'Ativo',
     },
     foto_url: {
       type: String,
       default: null,
     },
-    // Conta bancária usada para processamento salarial (armazenamento e exibição)
-    conta_bancaria: {
+    // Dados bancários
+    banco: {
       type: String,
       trim: true,
-      default: null,
+    },
+    nib: {
+      type: String,
+      trim: true,
+    },
+    nuib: {
+      type: String,
+      trim: true,
     },
   },
   {

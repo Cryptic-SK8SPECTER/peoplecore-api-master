@@ -50,6 +50,7 @@ const apiKeyRouter = require('./routes/apiKeyRoutes');
 const termosCondicoesRouter = require('./routes/termosCondicoesRoutes');
 const termosAceitacaoRouter = require('./routes/termosAceitacaoRoutes');
 const notificacaoRouter = require('./routes/notificacaoRoutes');
+const subempresaRouter = require('./routes/subempresaRoutes');
 
 // Start express app
 const app = express();
@@ -228,11 +229,50 @@ app.use((req, res, next) => {
 });
 
 // 3) ROUTES
+// ─── Página HTML de redefinição (backend host) ────────────────
+app.get('/reset-password/:token', (req, res) => {
+  const token = String(req.params.token || '');
+  return res.status(200).send(`<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redefinir palavra-passe</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f3f4f6; margin:0; padding:24px; }
+    .card { max-width: 560px; margin: 40px auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px; }
+    .logo { font-weight:700; color:#1f2937; margin-bottom:16px; }
+    h1 { margin:0 0 8px; font-size:24px; color:#111827; }
+    p { margin:0 0 16px; color:#4b5563; }
+    label { display:block; margin:10px 0 6px; font-size:14px; color:#111827; }
+    input { width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; }
+    button { margin-top:16px; width:100%; border:0; background:#79be3f; color:#fff; font-weight:600; padding:11px 12px; border-radius:8px; cursor:pointer; }
+    button:hover { filter: brightness(0.95); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">PeopleCore</div>
+    <h1>Redefinir palavra-passe</h1>
+    <p>Defina a nova palavra-passe da sua conta.</p>
+    <form method="POST" action="/api/v1/usuarios/resetPassword/${token}">
+      <label for="password">Nova palavra-passe</label>
+      <input id="password" name="password" type="password" minlength="8" required />
+      <label for="passwordConfirm">Confirmar palavra-passe</label>
+      <input id="passwordConfirm" name="passwordConfirm" type="password" minlength="8" required />
+      <button type="submit">Redefinir palavra-passe</button>
+    </form>
+  </div>
+</body>
+</html>`);
+});
+
 // ─── Autenticação e Utilizadores ──────────────────────────────
 app.use('/api/v1/usuarios', usuarioRouter);
 
 // ─── Empresa ──────────────────────────────────────────────────
 app.use('/api/v1/empresas', empresaRouter);
+app.use('/api/v1/subempresas', subempresaRouter);
 
 // ─── Funcionários ─────────────────────────────────────────────
 app.use('/api/v1/funcionarios', funcionarioRouter);

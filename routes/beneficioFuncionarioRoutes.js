@@ -7,23 +7,23 @@ const router = express.Router();
 router.use(authController.protect);
 
 // Rotas especiais
-router.get('/estatisticas', authController.restrictTo('admin', 'rh'), beneficioFuncionarioController.getEstatisticas);
-router.post('/atribuir', authController.restrictTo('admin', 'rh'), beneficioFuncionarioController.verificarRelacoes, beneficioFuncionarioController.atribuirBeneficio);
-router.post('/atribuir-massa', authController.restrictTo('admin', 'rh'), beneficioFuncionarioController.atribuirEmMassa);
-router.patch('/:id/status', authController.restrictTo('admin', 'rh'), beneficioFuncionarioController.alterarStatus);
-router.get('/funcionario/:funcionarioId', authController.restrictTo('admin', 'rh', 'gestor'), beneficioFuncionarioController.getByFuncionario);
-router.get('/beneficio/:beneficioId', authController.restrictTo('admin', 'rh'), beneficioFuncionarioController.getByBeneficio);
+router.get('/estatisticas', authController.allowGroup('PEOPLE_MANAGEMENT'), beneficioFuncionarioController.getEstatisticas);
+router.post('/atribuir', authController.allowGroup('PEOPLE_MANAGEMENT'), beneficioFuncionarioController.verificarRelacoes, beneficioFuncionarioController.atribuirBeneficio);
+router.post('/atribuir-massa', authController.allowGroup('PEOPLE_MANAGEMENT'), beneficioFuncionarioController.atribuirEmMassa);
+router.patch('/:id/status', authController.allowGroup('PEOPLE_MANAGEMENT'), beneficioFuncionarioController.alterarStatus);
+router.get('/funcionario/:funcionarioId', authController.allowGroup('LEADERSHIP'), beneficioFuncionarioController.getByFuncionario);
+router.get('/beneficio/:beneficioId', authController.allowGroup('PEOPLE_MANAGEMENT'), beneficioFuncionarioController.getByBeneficio);
 
 // CRUD padrão
 router
   .route('/')
-  .get(authController.restrictTo('admin', 'rh'), beneficioFuncionarioController.filterByEmpresa, beneficioFuncionarioController.getAllBeneficiosFuncionario)
-  .post(authController.restrictTo('admin', 'rh'), beneficioFuncionarioController.verificarRelacoes, beneficioFuncionarioController.createBeneficioFuncionario);
+  .get(authController.allowGroup('PEOPLE_MANAGEMENT'), beneficioFuncionarioController.filterByEmpresa, beneficioFuncionarioController.getAllBeneficiosFuncionario)
+  .post(authController.allowGroup('PEOPLE_MANAGEMENT'), beneficioFuncionarioController.verificarRelacoes, beneficioFuncionarioController.createBeneficioFuncionario);
 
 router
   .route('/:id')
-  .get(authController.restrictTo('admin', 'rh', 'gestor'), beneficioFuncionarioController.getBeneficioFuncionario)
-  .patch(authController.restrictTo('admin', 'rh'), beneficioFuncionarioController.verificarRelacoes, beneficioFuncionarioController.updateBeneficioFuncionario)
-  .delete(authController.restrictTo('admin', 'rh'), beneficioFuncionarioController.deleteBeneficioFuncionario);
+  .get(authController.allowGroup('LEADERSHIP'), beneficioFuncionarioController.getBeneficioFuncionario)
+  .patch(authController.allowGroup('PEOPLE_MANAGEMENT'), beneficioFuncionarioController.verificarRelacoes, beneficioFuncionarioController.updateBeneficioFuncionario)
+  .delete(authController.allowGroup('PEOPLE_MANAGEMENT'), beneficioFuncionarioController.deleteBeneficioFuncionario);
 
 module.exports = router;

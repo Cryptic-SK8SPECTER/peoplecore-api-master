@@ -15,8 +15,13 @@ router.post('/saida', presencaController.marcarSaida);
 router.get('/diario', presencaController.getDiario);
 router.get('/relatorio-mensal', presencaController.getRelatorioMensal);
 router.get(
+  '/elegibilidade/:funcionarioId',
+  authController.allowRoles('super-admin', 'admin', 'rh', 'gestor'),
+  presencaController.getElegibilidade
+);
+router.get(
   '/estatisticas',
-  authController.restrictTo('admin', 'rh'),
+  authController.allowGroup('LEADERSHIP'),
   presencaController.getEstatisticas
 );
 router.get('/funcionario/:funcionarioId', presencaController.getByFuncionario);
@@ -26,7 +31,7 @@ router
   .route('/')
   .get(presencaController.filterByEmpresa, presencaController.getAllPresencas)
   .post(
-    authController.restrictTo('admin', 'rh'),
+    authController.allowGroup('PEOPLE_MANAGEMENT'),
     presencaController.createPresenca
   );
 
@@ -34,11 +39,11 @@ router
   .route('/:id')
   .get(presencaController.getPresenca)
   .patch(
-    authController.restrictTo('admin', 'rh'),
+    authController.allowGroup('PEOPLE_MANAGEMENT'),
     presencaController.updatePresenca
   )
   .delete(
-    authController.restrictTo('admin', 'rh'),
+    authController.allowGroup('PEOPLE_MANAGEMENT'),
     presencaController.deletePresenca
   );
 

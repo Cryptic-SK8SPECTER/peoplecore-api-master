@@ -33,6 +33,48 @@ const server = app.listen(port, () => {
   console.log(`App running on port ${port}...`);
 });
 
+const runExpirySync = async () => {
+  try {
+    const Empresa = require('./models/empresaModel');
+    const Subempresa = require('./models/subempresaModel');
+    const now = new Date();
+
+    const [empresasExpiradas, subempresasExpiradas] = await Promise.all([
+      Empresa.updateMany(
+        {
+          prazo_uso_ate: { $ne: null, $lt: now },
+          $or: [{ status: { $ne: 'Expirado' } }, { ativo: true }],
+        },
+        { $set: { status: 'Expirado', ativo: false } },
+      ),
+      Subempresa.updateMany(
+        {
+          prazo_uso_ate: { $ne: null, $lt: now },
+          $or: [{ status: { $ne: 'Expirado' } }, { ativo: true }],
+        },
+        { $set: { status: 'Expirado', ativo: false } },
+      ),
+    ]);
+
+    const e = empresasExpiradas.modifiedCount || 0;
+    const s = subempresasExpiradas.modifiedCount || 0;
+    if (e > 0 || s > 0) {
+      console.log(`[expiry-sync] Empresas expiradas: ${e} | Sub-empresas expiradas: ${s}`);
+    }
+  } catch (err) {
+    console.error('[expiry-sync] erro ao sincronizar expiração:', err.message);
+  }
+};
+
+// run once at boot
+runExpirySync();
+
+// then run hourly
+cron.schedule('0 * * * *', async () => {
+  console.log('[expiry-sync] execução agendada');
+  await runExpirySync();
+});
+
 // Cron job para marcar faltas automaticamente às 18:00 todos os dias
 cron.schedule('0 18 * * *', async () => {
   console.log('Executando job de marcação automática de faltas...');
@@ -42,11 +84,15 @@ cron.schedule('0 18 * * *', async () => {
     const Funcionario = require('./models/funcionarioModel');
     const Presenca = require('./models/presencaModel');
     const Falta = require('./models/faltaModel');
+    const { getAttendanceEligibility } = require('./utils/attendanceEligibility');
 
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
-    const empresas = await Empresa.find({});
+    const empresas = await Empresa.find({
+      ativo: true,
+      status: { $ne: 'Expirado' },
+    });
 
     for (const empresa of empresas) {
       // Verificar se já passou do horário de saída da empresa
@@ -65,10 +111,16 @@ cron.schedule('0 18 * * *', async () => {
 
       const funcionarios = await Funcionario.find({
         empresa_id: empresa._id,
-        status: 'Ativo',
       }).select('_id nome');
 
       for (const func of funcionarios) {
+        const eligibility = await getAttendanceEligibility({
+          funcionarioId: func._id,
+          empresaId: empresa._id,
+          date: hoje,
+        });
+        if (!eligibility.shouldCreateAbsence) continue;
+
         const presencaExistente = await Presenca.findOne({
           funcionario_id: func._id,
           data: hoje,

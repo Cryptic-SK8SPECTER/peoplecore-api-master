@@ -3,6 +3,10 @@ const Funcionario = require('./../models/funcionarioModel');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
+const {
+  getAttendanceEligibility,
+  getAttendanceBlockMessage,
+} = require('./../utils/attendanceEligibility');
 
 // Middleware: filtra por empresa do usuário (via funcionários da empresa)
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
@@ -101,10 +105,14 @@ exports.justificarFalta = catchAsync(async (req, res, next) => {
     empresa_id: req.user.empresa_id,
   });
 
-  // Regra: funcionário em férias não pode receber/justificar faltas
-  if (funcionario?.status === 'Férias') {
+  const eligibility = await getAttendanceEligibility({
+    funcionarioId: falta.funcionario_id,
+    empresaId: req.user.empresa_id,
+    date: falta.data || new Date(),
+  });
+  if (!eligibility.shouldCreateAbsence) {
     return next(
-      new AppError('Funcionário em férias não pode receber/justificar faltas', 400),
+      new AppError(getAttendanceBlockMessage(eligibility, 'falta'), 400),
     );
   }
 
@@ -200,9 +208,13 @@ exports.createFalta = catchAsync(async (req, res, next) => {
     return next(new AppError('Funcionário não encontrado', 404));
   }
 
-  // Regra: funcionário em férias não pode receber faltas
-  if (funcionario.status === 'Férias') {
-    return next(new AppError('Funcionário em férias não pode receber faltas', 400));
+  const eligibility = await getAttendanceEligibility({
+    funcionarioId: funcionario._id,
+    empresaId: req.user.empresa_id,
+    date: req.body.data || new Date(),
+  });
+  if (!eligibility.shouldCreateAbsence) {
+    return next(new AppError(getAttendanceBlockMessage(eligibility, 'falta'), 400));
   }
 
   const falta = await Falta.create(req.body);

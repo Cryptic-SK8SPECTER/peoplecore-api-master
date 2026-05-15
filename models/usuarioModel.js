@@ -17,13 +17,18 @@ const usuarioSchema = new mongoose.Schema(
       ref: 'Empresa',
       sparse: true, // permite super-admin sem empresa
     },
+    sub_unidade_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SubUnidade',
+      default: null,
+    },
     perfil_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Perfil',
     },
     role: {
       type: String,
-      enum: ['super-admin', 'admin', 'rh', 'gestor', 'funcionario'],
+      enum: ['super-admin', 'admin', 'rh', 'gestor', 'funcionario', 'financeiro', 'auditor'],
       default: 'funcionario',
     },
     nome: {

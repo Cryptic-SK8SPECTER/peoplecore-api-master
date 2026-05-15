@@ -1,13 +1,115 @@
 const FolhaPagamento = require('./../models/folhaPagamentoModel');
 const ItemFolha = require('./../models/itemFolhaModel');
 const Funcionario = require('./../models/funcionarioModel');
-const Cargo = require('./../models/cargoModel');
 const Bonus = require('./../models/bonusModel');
 const Desconto = require('./../models/descontoModel');
 const HoraExtra = require('./../models/horaExtraModel');
+const BeneficioFuncionario = require('./../models/beneficioFuncionarioModel');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
+
+const FREQUENCIA_MESES = {
+  Único: 0,
+  Mensal: 1,
+  Trimestral: 3,
+  Semestral: 6,
+  Anual: 12,
+};
+
+function monthOverlap(start, end, periodStart, periodEnd) {
+  const s = start ? new Date(start) : new Date('1970-01-01');
+  const e = end ? new Date(end) : new Date('9999-12-31');
+  return s <= periodEnd && e >= periodStart;
+}
+
+function shouldApplyByFrequency(frequencia, startDate, refYear, refMonth) {
+  const freq = FREQUENCIA_MESES[frequencia] ?? 1;
+  if (freq === 1) return true;
+  if (freq === 0) {
+    return (
+      startDate.getFullYear() === refYear &&
+      startDate.getMonth() + 1 === refMonth
+    );
+  }
+  const startAbs = startDate.getFullYear() * 12 + startDate.getMonth();
+  const refAbs = refYear * 12 + (refMonth - 1);
+  if (refAbs < startAbs) return false;
+  return (refAbs - startAbs) % freq === 0;
+}
+
+function startOfDay(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function endOfDay(date) {
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
+function daysInclusive(start, end) {
+  const ms = end.getTime() - start.getTime();
+  return Math.floor(ms / (1000 * 60 * 60 * 24)) + 1;
+}
+
+function calculateProRata(funcionario, periodStart, periodEnd) {
+  const status = String(funcionario?.status || '').toLowerCase();
+  const isEventoDesligamento =
+    status === 'demitido' || status === 'falecido';
+
+  if (isEventoDesligamento && !funcionario?.data_saida) {
+    // Evento sem data de desligamento definida: evita pagamento indevido.
+    return 0;
+  }
+
+  const admissao = funcionario?.data_admissao
+    ? startOfDay(funcionario.data_admissao)
+    : startOfDay(periodStart);
+  const saida = funcionario?.data_saida
+    ? endOfDay(funcionario.data_saida)
+    : endOfDay(periodEnd);
+
+  const effectiveStart = admissao > periodStart ? admissao : periodStart;
+  const effectiveEnd = saida < periodEnd ? saida : periodEnd;
+  if (effectiveEnd < effectiveStart) return 0;
+
+  const totalDiasPeriodo = daysInclusive(periodStart, periodEnd);
+  const diasElegiveis = daysInclusive(effectiveStart, effectiveEnd);
+  return Math.max(0, Math.min(1, diasElegiveis / totalDiasPeriodo));
+}
+
+function getProRataAudit(funcionario, periodStart, periodEnd) {
+  const status = String(funcionario?.status || '').toLowerCase();
+  const isEventoDesligamento =
+    status === 'demitido' || status === 'falecido';
+
+  if (isEventoDesligamento && !funcionario?.data_saida) {
+    return { ratio: 0, diasElegiveis: 0, diasPeriodo: daysInclusive(periodStart, periodEnd) };
+  }
+
+  const admissao = funcionario?.data_admissao
+    ? startOfDay(funcionario.data_admissao)
+    : startOfDay(periodStart);
+  const saida = funcionario?.data_saida
+    ? endOfDay(funcionario.data_saida)
+    : endOfDay(periodEnd);
+
+  const effectiveStart = admissao > periodStart ? admissao : periodStart;
+  const effectiveEnd = saida < periodEnd ? saida : periodEnd;
+  const diasPeriodo = daysInclusive(periodStart, periodEnd);
+  if (effectiveEnd < effectiveStart) {
+    return { ratio: 0, diasElegiveis: 0, diasPeriodo };
+  }
+  const diasElegiveis = daysInclusive(effectiveStart, effectiveEnd);
+  return {
+    ratio: Math.max(0, Math.min(1, diasElegiveis / diasPeriodo)),
+    diasElegiveis,
+    diasPeriodo,
+  };
+}
 
 // Middleware: define empresa_id do usuário logado
 exports.setEmpresaId = (req, res, next) => {
@@ -88,11 +190,6 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
   await folha.save({ validateBeforeSave: false });
 
   try {
-    const funcionarios = await Funcionario.find({
-      empresa_id: req.user.empresa_id,
-      status: 'Ativo'
-    }).populate('cargo_id', 'salario_base salario_min subsidio_transporte subsidio_alimentacao');
-
     // Mapear mês para formato YYYY-MM
     const meses = {
       'Janeiro': '01', 'Fevereiro': '02', 'Março': '03', 'Abril': '04',
@@ -100,6 +197,16 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
       'Setembro': '09', 'Outubro': '10', 'Novembro': '11', 'Dezembro': '12'
     };
     const mesRef = `${folha.ano}-${meses[folha.mes]}`;
+    const refMonth = Number(meses[folha.mes]);
+    const periodStart = new Date(`${folha.ano}-${meses[folha.mes]}-01T00:00:00.000Z`);
+    const periodEnd = new Date(folha.ano, refMonth, 0, 23, 59, 59, 999);
+
+    const funcionarios = await Funcionario.find({
+      empresa_id: req.user.empresa_id,
+      status: { $in: ['Ativo', 'Demitido', 'Falecido'] },
+      data_admissao: { $lte: periodEnd },
+      $or: [{ data_saida: null }, { data_saida: { $gte: periodStart } }],
+    }).populate('cargo_id', 'salario_base');
 
     let totalBruto = 0;
     let totalDescontos = 0;
@@ -113,11 +220,49 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
           funcionario_id: func._id
         });
 
-        const salarioBase = func.cargo_id?.salario_base ?? func.cargo_id?.salario_min ?? 0;
-        const subsidioTransporteValor =
-          func.cargo_id?.subsidio_transporte ?? func.cargo_id?.subsidioTransporte ?? 0;
-        const subsidioAlimentacaoValor =
-          func.cargo_id?.subsidio_alimentacao ?? func.cargo_id?.subsidioAlimentacao ?? 0;
+        const proRataAudit = getProRataAudit(func, periodStart, periodEnd);
+        const proRata = proRataAudit.ratio;
+        if (proRata <= 0) return;
+        const salarioBase = (func.cargo_id?.salario_base ?? 0) * proRata;
+
+        // Estratégia B: benefícios são a única fonte de valores variáveis.
+        const atribuicoesBeneficios = await BeneficioFuncionario.find({
+          funcionario_id: func._id,
+          status: 'Ativo',
+        }).populate('beneficio_id', 'tipo frequencia status');
+
+        let beneficioTransporteValor = 0;
+        let beneficioAlimentacaoValor = 0;
+        let beneficiosOutrosValor = 0;
+
+        for (const atribuicao of atribuicoesBeneficios) {
+          const beneficio = atribuicao.beneficio_id;
+          if (!beneficio || beneficio.status !== 'Ativo') continue;
+          if (!monthOverlap(atribuicao.data_inicio, atribuicao.data_fim, periodStart, periodEnd)) continue;
+
+          const start = atribuicao.data_inicio
+            ? new Date(atribuicao.data_inicio)
+            : periodStart;
+          if (
+            !shouldApplyByFrequency(
+              beneficio.frequencia || 'Mensal',
+              start,
+              folha.ano,
+              refMonth,
+            )
+          ) {
+            continue;
+          }
+
+          const valor = Number(atribuicao.valor || 0);
+          const tipo = String(beneficio.tipo || '').toLowerCase();
+          if (tipo === 'transporte') beneficioTransporteValor += valor;
+          else if (tipo === 'alimentação' || tipo === 'alimentacao') beneficioAlimentacaoValor += valor;
+          else beneficiosOutrosValor += valor;
+        }
+
+        beneficioTransporteValor *= proRata;
+        beneficioAlimentacaoValor *= proRata;
 
         // Horas extras aprovadas
         const horasExtras = await HoraExtra.aggregate([
@@ -145,7 +290,7 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
           },
           { $group: { _id: null, total: { $sum: '$valor' } } }
         ]);
-        const bonusTotal = bonus.length > 0 ? bonus[0].total : 0;
+        const bonusTotal = (bonus.length > 0 ? bonus[0].total : 0) + beneficiosOutrosValor;
 
         // Descontos pendentes/aplicados
         const descontos = await Desconto.aggregate([
@@ -165,11 +310,14 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
         let item;
         if (itemExistente) {
           itemExistente.salario_base = salarioBase;
-          itemExistente.subsidio_transporte_valor = subsidioTransporteValor;
-          itemExistente.subsidio_alimentacao_valor = subsidioAlimentacaoValor;
+          itemExistente.beneficio_transporte_valor = beneficioTransporteValor;
+          itemExistente.beneficio_alimentacao_valor = beneficioAlimentacaoValor;
           itemExistente.horas_extras_valor = horasExtrasValor;
           itemExistente.bonus_total = bonusTotal;
           itemExistente.descontos_total = descontosTotal;
+          itemExistente.dias_elegiveis = proRataAudit.diasElegiveis;
+          itemExistente.dias_periodo = proRataAudit.diasPeriodo;
+          itemExistente.percentual_pro_rata = proRata;
           itemExistente.status = 'Processado';
           item = await itemExistente.save({ validateBeforeSave: false });
         } else {
@@ -177,11 +325,14 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
             folha_id: folha._id,
             funcionario_id: func._id,
             salario_base: salarioBase,
-            subsidio_transporte_valor: subsidioTransporteValor,
-            subsidio_alimentacao_valor: subsidioAlimentacaoValor,
+            beneficio_transporte_valor: beneficioTransporteValor,
+            beneficio_alimentacao_valor: beneficioAlimentacaoValor,
             horas_extras_valor: horasExtrasValor,
             bonus_total: bonusTotal,
             descontos_total: descontosTotal,
+            dias_elegiveis: proRataAudit.diasElegiveis,
+            dias_periodo: proRataAudit.diasPeriodo,
+            percentual_pro_rata: proRata,
             status: 'Processado'
           });
         }
@@ -190,8 +341,8 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
           salarioBase +
           horasExtrasValor +
           bonusTotal +
-          subsidioTransporteValor +
-          subsidioAlimentacaoValor;
+          beneficioTransporteValor +
+          beneficioAlimentacaoValor;
         totalDescontos += descontosTotal;
         totalLiquido += item.salario_liquido;
       })

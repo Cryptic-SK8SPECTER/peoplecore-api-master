@@ -173,4 +173,5 @@ exports.getLog = factory.getOne(LogSistema, [
   { path: 'empresa_id', select: 'nome' }
 ]);
 exports.createLog = factory.createOne(LogSistema);
+exports.updateLog = factory.updateOne(LogSistema);
 exports.deleteLog = factory.deleteOne(LogSistema);

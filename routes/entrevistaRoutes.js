@@ -7,22 +7,22 @@ const router = express.Router();
 router.use(authController.protect);
 
 // Rotas especiais
-router.get('/estatisticas', authController.restrictTo('admin', 'rh'), entrevistaController.filterByEmpresa, entrevistaController.getEstatisticas);
-router.get('/agenda', authController.restrictTo('admin', 'rh', 'gestor'), entrevistaController.getByData);
-router.get('/candidato/:candidatoId', authController.restrictTo('admin', 'rh', 'gestor'), entrevistaController.getByCandidato);
-router.get('/entrevistador/:entrevistadorId', authController.restrictTo('admin', 'rh', 'gestor'), entrevistaController.getByEntrevistador);
-router.patch('/:id/status', authController.restrictTo('admin', 'rh', 'gestor'), entrevistaController.alterarStatus);
+router.get('/estatisticas', authController.allowGroup('PEOPLE_MANAGEMENT'), entrevistaController.filterByEmpresa, entrevistaController.getEstatisticas);
+router.get('/agenda', authController.allowGroup('LEADERSHIP'), entrevistaController.getByData);
+router.get('/candidato/:candidatoId', authController.allowGroup('LEADERSHIP'), entrevistaController.getByCandidato);
+router.get('/entrevistador/:entrevistadorId', authController.allowGroup('LEADERSHIP'), entrevistaController.getByEntrevistador);
+router.patch('/:id/status', authController.allowGroup('LEADERSHIP'), entrevistaController.alterarStatus);
 
 // CRUD padrão
 router
   .route('/')
-  .get(authController.restrictTo('admin', 'rh', 'gestor'), entrevistaController.filterByEmpresa, entrevistaController.getAllEntrevistas)
-  .post(authController.restrictTo('admin', 'rh'), entrevistaController.verificarRelacoes, entrevistaController.createEntrevista);
+  .get(authController.allowGroup('LEADERSHIP'), entrevistaController.filterByEmpresa, entrevistaController.getAllEntrevistas)
+  .post(authController.allowGroup('PEOPLE_MANAGEMENT'), entrevistaController.verificarRelacoes, entrevistaController.createEntrevista);
 
 router
   .route('/:id')
-  .get(authController.restrictTo('admin', 'rh', 'gestor'), entrevistaController.getEntrevista)
-  .patch(authController.restrictTo('admin', 'rh'), entrevistaController.verificarRelacoes, entrevistaController.updateEntrevista)
-  .delete(authController.restrictTo('admin', 'rh'), entrevistaController.deleteEntrevista);
+  .get(authController.allowGroup('LEADERSHIP'), entrevistaController.getEntrevista)
+  .patch(authController.allowGroup('PEOPLE_MANAGEMENT'), entrevistaController.verificarRelacoes, entrevistaController.updateEntrevista)
+  .delete(authController.allowGroup('PEOPLE_MANAGEMENT'), entrevistaController.deleteEntrevista);
 
 module.exports = router;

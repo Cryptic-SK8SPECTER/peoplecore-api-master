@@ -13,6 +13,20 @@ const departamentoSchema = new mongoose.Schema({
     trim: true,
     maxlength: [100, 'Nome não pode exceder 100 caracteres']
   },
+  codigo: {
+    type: String,
+    trim: true,
+  },
+  sub_unidade_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SubUnidade',
+    default: null
+  },
+  departamento_pai_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Departamento',
+    default: null
+  },
   descricao: {
     type: String,
     trim: true,

@@ -29,8 +29,16 @@ router.patch(
   funcionarioController.updateFuncionarioFoto,
 );
 
-// Rotas restritas a admin/rh
-router.use(authController.restrictTo('admin', 'rh', 'super-admin'));
+// Upload de documentos do funcionário (public/documentos)
+router.patch(
+  '/:id/documentos',
+  funcionarioController.restrictToOwnFuncionario,
+  funcionarioController.uploadFuncionarioDocumentos,
+  funcionarioController.updateFuncionarioDocumentos,
+);
+
+// Rotas restritas à gestão de pessoas
+router.use(authController.allowGroup('PEOPLE_MANAGEMENT'));
 
 router.get('/estatisticas', funcionarioController.getEstatisticas);
 

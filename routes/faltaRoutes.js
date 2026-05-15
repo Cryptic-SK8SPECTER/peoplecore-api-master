@@ -12,14 +12,14 @@ router.get('/periodo', faltaController.filterByEmpresa, faltaController.getByPer
 router.get('/nao-justificadas', faltaController.getNaoJustificadas);
 router.get('/estatisticas', faltaController.getEstatisticas);
 router.get('/funcionario/:funcionarioId', faltaController.getByFuncionario);
-router.patch('/:id/justificar', authController.restrictTo('admin', 'rh'), faltaController.justificarFalta);
+router.patch('/:id/justificar', authController.allowGroup('LEADERSHIP'), faltaController.justificarFalta);
 
 // CRUD padrão
 router
   .route('/')
   .get(faltaController.filterByEmpresa, faltaController.getAllFaltas)
   .post(
-    authController.restrictTo('admin', 'rh'),
+    authController.allowGroup('LEADERSHIP'),
     faltaController.createFalta
   );
 
@@ -27,11 +27,11 @@ router
   .route('/:id')
   .get(faltaController.getFalta)
   .patch(
-    authController.restrictTo('admin', 'rh'),
+    authController.allowGroup('LEADERSHIP'),
     faltaController.updateFalta
   )
   .delete(
-    authController.restrictTo('admin', 'rh'),
+    authController.allowGroup('LEADERSHIP'),
     faltaController.deleteFalta
   );
 

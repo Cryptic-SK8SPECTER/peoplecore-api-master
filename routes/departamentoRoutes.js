@@ -12,8 +12,8 @@ router.get('/ativos', departamentoController.filterByEmpresa, departamentoContro
 router.get('/com-funcionarios', departamentoController.getComFuncionarios);
 router.get('/verificar-duplicado', departamentoController.verificarDuplicado);
 
-// Rotas restritas a admin/rh
-router.use(authController.restrictTo('admin', 'rh'));
+// Rotas restritas ao admin da empresa
+router.use(authController.allowGroup('ADMIN_ONLY'));
 
 router
   .route('/')

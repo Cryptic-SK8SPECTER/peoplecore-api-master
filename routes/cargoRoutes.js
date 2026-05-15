@@ -12,8 +12,8 @@ router.get('/ativos', cargoController.filterByEmpresa, cargoController.getAtivos
 router.get('/departamento/:departamentoId', cargoController.getByDepartamento);
 router.get('/nivel/:nivel', cargoController.getByNivel);
 
-// Rotas restritas a admin/rh
-router.use(authController.restrictTo('admin', 'rh'));
+// Rotas restritas ao admin da empresa
+router.use(authController.allowGroup('ADMIN_ONLY'));
 
 router.get('/estatisticas', cargoController.getEstatisticas);
 

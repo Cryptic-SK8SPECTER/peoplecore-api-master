@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Proteger todas as rotas
 router.use(authController.protect);
-router.use(authController.restrictTo('admin', 'rh'));
+router.use(authController.allowGroup('PAYROLL'));
 
 // Rotas específicas
 router.get('/estatisticas', folhaPagamentoController.getEstatisticas);

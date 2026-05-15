@@ -11,7 +11,7 @@ router.use(authController.protect);
 router.get('/pendentes', horaExtraController.getPendentes);
 router.get('/estatisticas', horaExtraController.getEstatisticas);
 router.get('/funcionario/:funcionarioId', horaExtraController.getByFuncionario);
-router.patch('/:id/status', authController.restrictTo('admin', 'rh'), horaExtraController.alterarStatus);
+router.patch('/:id/status', authController.allowGroup('LEADERSHIP'), horaExtraController.alterarStatus);
 
 // CRUD padrão
 router
@@ -26,11 +26,11 @@ router
   .route('/:id')
   .get(horaExtraController.getHoraExtra)
   .patch(
-    authController.restrictTo('admin', 'rh'),
+    authController.allowGroup('LEADERSHIP'),
     horaExtraController.updateHoraExtra
   )
   .delete(
-    authController.restrictTo('admin', 'rh'),
+    authController.allowGroup('LEADERSHIP'),
     horaExtraController.deleteHoraExtra
   );
 

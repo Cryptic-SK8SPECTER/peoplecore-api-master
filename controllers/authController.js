@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const { promisify } = require('util');
 const jwt = require('jsonwebtoken');
 const Usuario = require('./../models/usuarioModel');
+const Empresa = require('./../models/empresaModel');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 const Email = require('./../utils/email');
@@ -10,6 +11,25 @@ const signToken = id => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '90d',
   });
+};
+
+const empresaSemAcesso = (empresa) => {
+  if (!empresa) return true;
+  const expirouPorPrazo =
+    empresa.prazo_uso_ate && new Date(empresa.prazo_uso_ate).getTime() < Date.now();
+  return empresa.ativo === false || empresa.status === 'Expirado' || expirouPorPrazo;
+};
+
+const validarAcessoEmpresa = async (user) => {
+  const role = String(user?.role || '').toLowerCase();
+  if (role === 'super-admin') return;
+  if (!user?.empresa_id) {
+    throw new AppError('Utilizador sem empresa associada', 403);
+  }
+  const empresa = await Empresa.findById(user.empresa_id).select('ativo status prazo_uso_ate');
+  if (empresaSemAcesso(empresa)) {
+    throw new AppError('Acesso bloqueado: a empresa encontra-se expirada ou inativa', 403);
+  }
 };
 
 
@@ -68,6 +88,10 @@ exports.login = catchAsync(async (req, res, next) => {
   if (!user || !(await user.correctPassword(password, user.password))) {
     return next(new AppError('E-mail ou senha incorretos', 401));
   }
+  if (user.status !== 'Ativo') {
+    return next(new AppError('Conta de utilizador inativa ou bloqueada', 403));
+  }
+  await validarAcessoEmpresa(user);
 
   // 3) If everything ok, send token to client
   createSendToken(user, 200, res);
@@ -122,6 +146,7 @@ exports.protect = catchAsync(async (req, res, next) => {
       )
     );
   }
+  await validarAcessoEmpresa(currentUser);
 
   // GRANT ACCESS TO PROTECTED ROUTE
   req.user = currentUser;
@@ -149,6 +174,7 @@ exports.isLoggedIn = async (req, res, next) => {
       if (currentUser.changedPasswordAfter(decoded.iat)) {
         return next();
       }
+      await validarAcessoEmpresa(currentUser);
 
       // THERE IS A LOGGED IN USER
       res.locals.user = currentUser;
@@ -173,6 +199,21 @@ exports.restrictTo = (...roles) => {
   };
 };
 
+// Role groups (single source for backend route guards)
+const ROLE_GROUPS = {
+  ADMIN: ['admin', 'super-admin'],
+  ADMIN_ONLY: ['admin', 'super-admin'],
+  PEOPLE_MANAGEMENT: ['admin', 'rh', 'super-admin'],
+  LEADERSHIP: ['admin', 'rh', 'gestor', 'super-admin'],
+  PAYROLL: ['admin', 'financeiro', 'super-admin'],
+  AUDIT_READ: ['admin', 'super-admin', 'auditor'],
+  HISTORY_READ: ['admin', 'rh', 'auditor', 'financeiro', 'super-admin'],
+};
+
+exports.ROLE_GROUPS = ROLE_GROUPS;
+exports.allowRoles = (...roles) => exports.restrictTo(...roles);
+exports.allowGroup = (groupName) => exports.restrictTo(...(ROLE_GROUPS[groupName] || []));
+
 exports.forgotPassword = catchAsync(async (req, res, next) => {
   // 1) Get user based on POSTed email
   // Não revelar se o email existe ou não (proteção contra enumeração)
@@ -188,9 +229,8 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
     // 3) Send it to user's email
     try {
-      const resetURL = `${req.protocol}://${req.get(
-        'host'
-      )}/api/v1/users/resetPassword/${resetToken}`;
+      const clientBase = (process.env.CLIENT_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+      const resetURL = `${clientBase}/reset-password/${resetToken}`;
       await new Email(user, resetURL).sendPasswordReset();
     } catch (err) {
       user.passwordResetToken = undefined;
@@ -232,7 +272,33 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   await user.save();
 
   // 3) Update changedPasswordAt property for the user
-  // 4) Log the user in, send JWT
+  // 4) Log the user in, send JWT (API) ou resposta HTML (form backend)
+  if (req.method === 'POST') {
+    const clientBase = (process.env.CLIENT_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+    return res.status(200).send(`<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Palavra-passe redefinida</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f5f6f8; margin:0; padding:24px; }
+    .card { max-width: 520px; margin: 48px auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px; }
+    h1 { margin:0 0 8px; font-size:24px; }
+    p { margin:0 0 16px; color:#4b5563; }
+    a { display:inline-block; padding:10px 14px; background:#79be3f; color:#fff; text-decoration:none; border-radius:8px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Palavra-passe redefinida com sucesso</h1>
+    <p>Agora pode iniciar sessão com a nova palavra-passe.</p>
+    <a href="${clientBase}/login">Ir para login</a>
+  </div>
+</body>
+</html>`);
+  }
+
   createSendToken(user, 200, res);
 });
 

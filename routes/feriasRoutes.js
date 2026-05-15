@@ -13,7 +13,7 @@ router.get('/periodo', feriasController.filterByEmpresa, feriasController.getByP
 router.get('/saldo', feriasController.getSaldo);
 router.get('/estatisticas', feriasController.getEstatisticas);
 router.get('/funcionario/:funcionarioId', feriasController.getByFuncionario);
-router.patch('/:id/status', authController.restrictTo('admin', 'rh'), feriasController.alterarStatus);
+router.patch('/:id/status', authController.allowGroup('LEADERSHIP'), feriasController.alterarStatus);
 
 // CRUD padrão
 router
@@ -29,12 +29,12 @@ router
   .route('/:id')
   .get(feriasController.getFerias)
   .patch(
-    authController.restrictTo('admin', 'rh'),
+    authController.allowGroup('PEOPLE_MANAGEMENT'),
     feriasController.verificarSobreposicao,
     feriasController.updateFerias
   )
   .delete(
-    authController.restrictTo('admin', 'rh'),
+    authController.allowGroup('PEOPLE_MANAGEMENT'),
     feriasController.deleteFerias
   );
 

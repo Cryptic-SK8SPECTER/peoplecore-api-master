@@ -1,6 +1,7 @@
 const Ferias = require('./../models/feriasModel');
 const Funcionario = require('./../models/funcionarioModel');
 const TipoLicenca = require('./../models/tipoLicencaModel');
+const logSistemaController = require('./logSistemaController');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
@@ -116,6 +117,7 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
     return next(new AppError(`Não é possível alterar de "${ferias.status}" para "${status}"`, 400));
   }
 
+  const statusAnterior = ferias.status;
   ferias.status = status;
 
   if (status === 'Aprovado') {
@@ -123,6 +125,25 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
   }
 
   await ferias.save();
+
+  await logSistemaController.registarLog({
+    usuario_id: req.user?._id,
+    empresa_id: req.user?.empresa_id,
+    acao: `Licença ${status.toLowerCase()}`,
+    modulo: 'Férias',
+    severidade: status === 'Rejeitado' ? 'Aviso' : 'Info',
+    ip: req.ip || req.connection?.remoteAddress,
+    detalhes: {
+      evento: 'licenca_status_alterado',
+      ferias_id: ferias._id,
+      funcionario_id: ferias.funcionario_id,
+      tipoLicenca: ferias.tipo_licenca,
+      statusAnterior,
+      statusNovo: status,
+      data_inicio: ferias.data_inicio,
+      data_fim: ferias.data_fim,
+    },
+  });
 
   res.status(200).json({
     status: 'success',
@@ -337,6 +358,67 @@ exports.getFerias = factory.getOne(Ferias, [
   { path: 'funcionario_id', select: 'nome email' },
   { path: 'aprovador_id', select: 'nome' }
 ]);
-exports.createFerias = factory.createOne(Ferias);
-exports.updateFerias = factory.updateOne(Ferias);
+exports.createFerias = catchAsync(async (req, res, next) => {
+  const doc = await Ferias.create(req.body);
+
+  await logSistemaController.registarLog({
+    usuario_id: req.user?._id,
+    empresa_id: req.user?.empresa_id,
+    acao: 'Licença criada',
+    modulo: 'Férias',
+    severidade: 'Info',
+    ip: req.ip || req.connection?.remoteAddress,
+    detalhes: {
+      evento: 'licenca_criada',
+      ferias_id: doc._id,
+      funcionario_id: doc.funcionario_id,
+      tipoLicenca: doc.tipo_licenca,
+      status: doc.status,
+      data_inicio: doc.data_inicio,
+      data_fim: doc.data_fim,
+      dias: doc.dias,
+      motivo: doc.motivo,
+    },
+  });
+
+  res.status(201).json({
+    status: 'success',
+    data: { data: doc },
+  });
+});
+exports.updateFerias = catchAsync(async (req, res, next) => {
+  const before = await Ferias.findById(req.params.id);
+  if (!before) return next(new AppError('Registo de férias não encontrado', 404));
+
+  const after = await Ferias.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true,
+  });
+
+  await logSistemaController.registarLog({
+    usuario_id: req.user?._id,
+    empresa_id: req.user?.empresa_id,
+    acao: 'Licença atualizada',
+    modulo: 'Férias',
+    severidade: 'Info',
+    ip: req.ip || req.connection?.remoteAddress,
+    detalhes: {
+      evento: 'licenca_atualizada',
+      ferias_id: after._id,
+      funcionario_id: after.funcionario_id,
+      tipoLicencaAnterior: before.tipo_licenca,
+      tipoLicenca: after.tipo_licenca,
+      statusAnterior: before.status,
+      statusNovo: after.status,
+      data_inicio: after.data_inicio,
+      data_fim: after.data_fim,
+      dias: after.dias,
+    },
+  });
+
+  res.status(200).json({
+    status: 'success',
+    data: { data: after },
+  });
+});
 exports.deleteFerias = factory.deleteOne(Ferias);

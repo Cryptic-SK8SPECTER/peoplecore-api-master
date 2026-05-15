@@ -103,8 +103,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
       $group: {
         _id: '$nivel',
         count: { $sum: 1 },
-        mediaSalarioMin: { $avg: '$salario_min' },
-        mediaSalarioMax: { $avg: '$salario_max' },
+        mediaSalarioBase: { $avg: '$salario_base' },
       },
     },
     { $sort: { _id: 1 } },

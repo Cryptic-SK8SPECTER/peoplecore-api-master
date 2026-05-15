@@ -97,8 +97,8 @@ exports.gerarRecibos = catchAsync(async (req, res, next) => {
         ano,
         salario_bruto:
           item.salario_base +
-          (item.subsidio_transporte_valor || 0) +
-          (item.subsidio_alimentacao_valor || 0) +
+          (item.beneficio_transporte_valor || item.subsidio_transporte_valor || 0) +
+          (item.beneficio_alimentacao_valor || item.subsidio_alimentacao_valor || 0) +
           item.horas_extras_valor +
           item.bonus_total,
         descontos: item.descontos_total,

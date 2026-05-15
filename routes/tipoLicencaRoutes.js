@@ -10,8 +10,8 @@ router.use(authController.protect);
 // Rotas públicas (usuários autenticados)
 router.get('/ativos', tipoLicencaController.getAtivos);
 
-// Rotas restritas a admin/rh
-router.use(authController.restrictTo('admin', 'rh'));
+// Rotas restritas à gestão de pessoas
+router.use(authController.allowGroup('PEOPLE_MANAGEMENT'));
 
 router
   .route('/')

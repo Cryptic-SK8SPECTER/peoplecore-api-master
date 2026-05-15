@@ -10,6 +10,7 @@ router.post('/login', authController.login);
 router.get('/logout', authController.logout);
 router.post('/forgotPassword', authController.forgotPassword);
 router.patch('/resetPassword/:token', authController.resetPassword);
+router.post('/resetPassword/:token', authController.resetPassword);
 
 // ─── Proteger todas as rotas abaixo ───────────────────────────
 router.use(authController.protect);
@@ -25,8 +26,8 @@ router.patch(
 );
 router.delete('/deleteMe', usuarioController.deleteMe);
 
-// ─── Rotas restritas a admin e rh ─────────────────────────────
-router.use(authController.restrictTo('admin', 'rh', 'super-admin'));
+// ─── Rotas restritas à administração ──────────────────────────
+router.use(authController.allowGroup('ADMIN'));
 
 // Rotas específicas
 router.get('/empresa', usuarioController.getUsuariosDaEmpresa);

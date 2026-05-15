@@ -76,6 +76,60 @@ exports.updateFuncionarioFoto = catchAsync(async (req, res, next) => {
   });
 });
 
+// ─── Upload de documentos do funcionário ─────────────
+const docsDir = path.join(__dirname, '..', 'public', 'documentos');
+if (!fs.existsSync(docsDir)) {
+  fs.mkdirSync(docsDir, { recursive: true });
+}
+
+const funcionarioDocsStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, docsDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    const safeExt = ext.match(/^\.[a-z0-9]+$/i) ? ext : '';
+    const funcionarioId = req.params?.id ? String(req.params.id) : 'new';
+    const unique = Date.now() + Math.round(Math.random() * 1E9);
+    cb(null, `doc-${funcionarioId}-${unique}${safeExt}`);
+  },
+});
+
+const uploadFuncionarioDocumentos = multer({
+  storage: funcionarioDocsStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+});
+
+exports.uploadFuncionarioDocumentos = uploadFuncionarioDocumentos.array('documentos', 10);
+
+exports.updateFuncionarioDocumentos = catchAsync(async (req, res, next) => {
+  if (!req.files || req.files.length === 0) {
+    return next(new AppError('Nenhum documento recebido', 400));
+  }
+
+  const funcionario = await Funcionario.findOne({
+    _id: req.params.id,
+    empresa_id: req.user.empresa_id,
+  });
+
+  if (!funcionario) {
+    return next(new AppError('Funcionário não encontrado', 404));
+  }
+
+  const newDocs = req.files.map(file => ({
+    url: file.filename,
+    nome: file.originalname,
+  }));
+
+  funcionario.documentos = [...(funcionario.documentos || []), ...newDocs];
+  await funcionario.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      data: funcionario,
+    },
+  });
+});
+
 // Middleware: define empresa_id do usuário logado
 exports.setEmpresaId = (req, res, next) => {
   if (!req.body.empresa_id) req.body.empresa_id = req.user.empresa_id;

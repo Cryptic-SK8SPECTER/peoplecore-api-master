@@ -13,28 +13,28 @@ router.get('/estatisticas', descontoController.getEstatisticas);
 router.get('/mes/:mes', descontoController.getByMes);
 router.get('/tipo/:tipo', descontoController.getByTipo);
 router.get('/funcionario/:funcionarioId', descontoController.getByFuncionario);
-router.post('/recorrentes', authController.restrictTo('admin', 'rh'), descontoController.aplicarRecorrentes);
-router.patch('/:id/status', authController.restrictTo('admin', 'rh'), descontoController.alterarStatus);
+router.post('/recorrentes', authController.allowGroup('PAYROLL'), descontoController.aplicarRecorrentes);
+router.patch('/:id/status', authController.allowGroup('PAYROLL'), descontoController.alterarStatus);
 
 // CRUD padrão
 router
   .route('/')
-  .get(descontoController.filterByEmpresa, descontoController.getAllDescontos)
+  .get(authController.allowGroup('PAYROLL'), descontoController.filterByEmpresa, descontoController.getAllDescontos)
   .post(
-    authController.restrictTo('admin', 'rh'),
+    authController.allowGroup('PAYROLL'),
     descontoController.setEmpresaId,
     descontoController.createDesconto
   );
 
 router
   .route('/:id')
-  .get(descontoController.getDesconto)
+  .get(authController.allowGroup('PAYROLL'), descontoController.getDesconto)
   .patch(
-    authController.restrictTo('admin', 'rh'),
+    authController.allowGroup('PAYROLL'),
     descontoController.updateDesconto
   )
   .delete(
-    authController.restrictTo('admin', 'rh'),
+    authController.allowGroup('PAYROLL'),
     descontoController.deleteDesconto
   );
 
