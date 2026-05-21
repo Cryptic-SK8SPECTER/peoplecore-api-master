@@ -83,20 +83,40 @@ app.use(
 );
 
 // Implement CORS
+const LOCAL_DEV_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:8080',
+  'http://localhost:8081',
+  'http://127.0.0.1:8080',
+  'http://127.0.0.1:3000',
+];
+const DEFAULT_ORIGINS = [
+  ...LOCAL_DEV_ORIGINS,
+  'https://peoplecore-master.vercel.app',
+];
+
+const isLocalDevOrigin = (origin) =>
+  /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.test(origin);
+
+const isVercelOrigin = (origin) =>
+  /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin);
+
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin && process.env.NODE_ENV === 'development') {
+    if (!origin) {
       return callback(null, true);
     }
-    const allowedOrigins = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-      : [
-          'http://localhost:3000',
-          'http://localhost:8080',
-          'http://localhost:8081',
-          'https://peoplecore-master.vercel.app',
-        ];
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+    const fromEnv = process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+      : [];
+    const allowedOrigins = [
+      ...new Set([...(fromEnv.length ? fromEnv : DEFAULT_ORIGINS), ...LOCAL_DEV_ORIGINS]),
+    ];
+    if (
+      allowedOrigins.includes(origin) ||
+      isLocalDevOrigin(origin) ||
+      isVercelOrigin(origin)
+    ) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -105,7 +125,12 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'X-Frontend-Origin',
+  ],
 };
 
 app.use(cors(corsOptions));

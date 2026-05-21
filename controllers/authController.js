@@ -6,6 +6,7 @@ const Empresa = require('./../models/empresaModel');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 const Email = require('./../utils/email');
+const { getClientUrl, buildResetPasswordUrl } = require('./../utils/clientUrl');
 
 const signToken = id => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -229,16 +230,15 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
     // 3) Send it to user's email
     try {
-      const clientBase = (process.env.CLIENT_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
-      const resetURL = `${clientBase}/reset-password/${resetToken}`;
+      const resetURL = buildResetPasswordUrl(req, resetToken);
       await new Email(user, resetURL).sendPasswordReset();
     } catch (err) {
       user.passwordResetToken = undefined;
       user.passwordResetExpires = undefined;
       await user.save({ validateBeforeSave: false });
 
-      // Não revelar erro ao usuário
-      console.error('Error sending password reset email:', err);
+      // Não revelar erro ao utilizador (anti-enumeração)
+      console.error('[forgotPassword] Falha ao enviar email:', err.message || err);
     }
   }
 
@@ -274,7 +274,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   // 3) Update changedPasswordAt property for the user
   // 4) Log the user in, send JWT (API) ou resposta HTML (form backend)
   if (req.method === 'POST') {
-    const clientBase = (process.env.CLIENT_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+    const clientBase = getClientUrl(req);
     return res.status(200).send(`<!doctype html>
 <html lang="pt">
 <head>
