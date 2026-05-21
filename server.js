@@ -29,8 +29,9 @@ mongoose
   });
 
 const port = process.env.PORT || 3000;
-const server = app.listen(port, () => {
-  console.log(`App running on port ${port}...`);
+const host = process.env.HOST || '0.0.0.0';
+const server = app.listen(port, host, () => {
+  console.log(`App running on http://${host}:${port} ...`);
 });
 
 const runExpirySync = async () => {
