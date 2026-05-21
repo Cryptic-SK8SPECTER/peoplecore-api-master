@@ -12,8 +12,8 @@ router.get('/ativos', cargoController.filterByEmpresa, cargoController.getAtivos
 router.get('/departamento/:departamentoId', cargoController.getByDepartamento);
 router.get('/nivel/:nivel', cargoController.getByNivel);
 
-// Rotas restritas ao admin da empresa
-router.use(authController.allowGroup('ADMIN_ONLY'));
+// Gestão de cargos — alinhado ao frontend (admin + rh)
+router.use(authController.allowGroup('PEOPLE_MANAGEMENT'));
 
 router.get('/estatisticas', cargoController.getEstatisticas);
 

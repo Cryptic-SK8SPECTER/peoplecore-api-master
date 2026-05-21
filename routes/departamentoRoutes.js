@@ -12,8 +12,8 @@ router.get('/ativos', departamentoController.filterByEmpresa, departamentoContro
 router.get('/com-funcionarios', departamentoController.getComFuncionarios);
 router.get('/verificar-duplicado', departamentoController.verificarDuplicado);
 
-// Rotas restritas ao admin da empresa
-router.use(authController.allowGroup('ADMIN_ONLY'));
+// Gestão de departamentos — alinhado ao frontend (admin + rh)
+router.use(authController.allowGroup('PEOPLE_MANAGEMENT'));
 
 router
   .route('/')
