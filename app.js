@@ -89,12 +89,12 @@ const corsOptions = {
       return callback(null, true);
     }
     const allowedOrigins = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(',')
+      ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
       : [
           'http://localhost:3000',
           'http://localhost:8080',
           'http://localhost:8081',
-          'cryptic-sk8specter.tailc8215c.ts.net',
+          'https://peoplecore-master.vercel.app',
         ];
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       callback(null, true);
