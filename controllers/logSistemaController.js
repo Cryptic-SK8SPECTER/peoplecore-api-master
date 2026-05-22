@@ -51,6 +51,38 @@ exports.getBySeveridade = catchAsync(async (req, res, next) => {
   });
 });
 
+// Obter logs associados a um funcionário (detalhes.funcionario_id)
+exports.getByFuncionario = catchAsync(async (req, res, next) => {
+  const { funcionarioId } = req.params;
+  const role = String(req.user?.role || '').toLowerCase();
+  const empresaFilter = req.user?.empresa_id
+    ? { empresa_id: req.user.empresa_id }
+    : role === 'super-admin'
+      ? {}
+      : null;
+
+  if (empresaFilter === null) {
+    return next(new AppError('Utilizador sem empresa associada', 403));
+  }
+
+  const logs = await LogSistema.find(empresaFilter)
+    .populate('usuario_id', 'nome email')
+    .sort('-data')
+    .limit(300)
+    .lean();
+
+  const target = String(funcionarioId);
+  const filtered = logs.filter(
+    (log) => String(log?.detalhes?.funcionario_id || '') === target,
+  );
+
+  res.status(200).json({
+    status: 'success',
+    results: filtered.length,
+    data: { data: filtered.slice(0, 30) },
+  });
+});
+
 // Obter por usuário
 exports.getByUsuario = catchAsync(async (req, res, next) => {
   const logs = await LogSistema.find({

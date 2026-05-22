@@ -20,8 +20,15 @@ exports.filterByAvaliacao = (req, res, next) => {
 
 // Obter avaliações de um funcionário específico
 exports.getByFuncionario = catchAsync(async (req, res, next) => {
-  const isAdminOuRh = ['admin', 'rh'].includes(req.user?.role);
-  if (!isAdminOuRh && req.user?.employee?.toString() !== req.params.funcionarioId.toString()) {
+  const role = String(req.user?.role || '').toLowerCase();
+  const isLeadership = ['admin', 'rh', 'gestor', 'super-admin', 'auditor'].includes(role);
+  const viewerFuncionarioId = String(
+    req.user?.funcionario_id || req.user?.employee || '',
+  );
+  if (
+    !isLeadership &&
+    viewerFuncionarioId !== String(req.params.funcionarioId)
+  ) {
     return next(new AppError('Sem permissão para consultar avaliações de outro funcionário', 403));
   }
 

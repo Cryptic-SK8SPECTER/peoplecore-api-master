@@ -14,6 +14,11 @@ router.get('/pesquisar', authController.allowGroup('HISTORY_READ'), logSistemaCo
 router.get('/modulo/:modulo', authController.allowGroup('HISTORY_READ'), logSistemaController.getByModulo);
 router.get('/severidade/:severidade', authController.allowGroup('HISTORY_READ'), logSistemaController.getBySeveridade);
 router.get('/usuario/:usuarioId', authController.allowGroup('HISTORY_READ'), logSistemaController.getByUsuario);
+router.get(
+  '/funcionario/:funcionarioId',
+  authController.allowGroup('HISTORY_READ'),
+  logSistemaController.getByFuncionario,
+);
 
 // CRUD padrão
 router

@@ -51,6 +51,7 @@ const termosCondicoesRouter = require('./routes/termosCondicoesRoutes');
 const termosAceitacaoRouter = require('./routes/termosAceitacaoRoutes');
 const notificacaoRouter = require('./routes/notificacaoRoutes');
 const subempresaRouter = require('./routes/subempresaRoutes');
+const reportRouter = require('./routes/reportRoutes');
 
 // Start express app
 const app = express();
@@ -354,6 +355,9 @@ app.use('/api/v1/termos-aceitacao', termosAceitacaoRouter);
 
 // ─── Notificações ─────────────────────────────────────────────
 app.use('/api/v1/notificacoes', notificacaoRouter);
+
+// ─── Relatórios (dashboard) ───────────────────────────────────
+app.use('/api/v1/reports', reportRouter);
 
 // ─── 404 ──────────────────────────────────────────────────────
 app.all('*', (req, res, next) => {
