@@ -29,6 +29,11 @@ const funcionarioSchema = new mongoose.Schema(
       trim: true,
       maxlength: [200, 'Nome não pode exceder 200 caracteres'],
     },
+    nome_conhecido: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'Nome conhecido não pode exceder 200 caracteres'],
+    },
     email: {
       type: String,
       required: [true, 'Email é obrigatório'],

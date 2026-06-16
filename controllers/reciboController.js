@@ -1,6 +1,10 @@
 const Recibo = require('./../models/reciboModel');
 const Funcionario = require('./../models/funcionarioModel');
 const ItemFolha = require('./../models/itemFolhaModel');
+const Empresa = require('./../models/empresaModel');
+const Cargo = require('./../models/cargoModel');
+const Departamento = require('./../models/departamentoModel');
+const { buildReciboPayload } = require('./../utils/reciboBuilder');
 const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
@@ -70,17 +74,20 @@ exports.gerarRecibos = catchAsync(async (req, res, next) => {
   const itens = await ItemFolha.find({
     folha_id,
     status: { $in: ['Processado', 'Pago'] }
-  }).populate('funcionario_id', 'empresa_id');
+  }).populate('funcionario_id');
+
+  const empresa = await Empresa.findById(req.user.empresa_id);
 
   let criados = 0;
   let existentes = 0;
 
   await Promise.all(
     itens.map(async (item) => {
-      if (item.funcionario_id.empresa_id.toString() !== req.user.empresa_id.toString()) return;
+      const funcionario = item.funcionario_id;
+      if (!funcionario || funcionario.empresa_id.toString() !== req.user.empresa_id.toString()) return;
 
       const existe = await Recibo.findOne({
-        funcionario_id: item.funcionario_id._id,
+        funcionario_id: funcionario._id,
         mes,
         ano
       });
@@ -90,21 +97,22 @@ exports.gerarRecibos = catchAsync(async (req, res, next) => {
         return;
       }
 
-      await Recibo.create({
-        item_folha_id: item._id,
-        funcionario_id: item.funcionario_id._id,
+      const [cargo, departamento] = await Promise.all([
+        Cargo.findById(funcionario.cargo_id).select('nome titulo nivel'),
+        Departamento.findById(funcionario.departamento_id).select('nome'),
+      ]);
+
+      const payload = await buildReciboPayload({
+        item,
+        funcionario,
+        empresa,
+        cargo,
+        departamento,
         mes,
         ano,
-        salario_bruto:
-          item.salario_base +
-          (item.beneficio_transporte_valor || item.subsidio_transporte_valor || 0) +
-          (item.beneficio_alimentacao_valor || item.subsidio_alimentacao_valor || 0) +
-          item.horas_extras_valor +
-          item.bonus_total,
-        descontos: item.descontos_total,
-        salario_liquido: item.salario_liquido,
-        url_pdf: `/recibos/${item.funcionario_id._id}/${ano}-${mes}.pdf`
       });
+
+      await Recibo.create(payload);
       criados++;
     })
   );
