@@ -4,10 +4,21 @@ const Funcionario = require('./../models/funcionarioModel');
 const Bonus = require('./../models/bonusModel');
 const Desconto = require('./../models/descontoModel');
 const HoraExtra = require('./../models/horaExtraModel');
+const Falta = require('./../models/faltaModel');
 const BeneficioFuncionario = require('./../models/beneficioFuncionarioModel');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
+const {
+  round2,
+  calcSalarioDiario,
+  calcINSSTrabalhador,
+  calcINSSEmpregador,
+  calcQuotaSindical,
+  calcIRPS,
+  isWeekend,
+  categorizeBeneficio,
+} = require('./../utils/payrollCalculations');
 
 const FREQUENCIA_MESES = {
   Único: 0,
@@ -161,9 +172,16 @@ exports.getByMesAno = catchAsync(async (req, res, next) => {
   }
 
   const itens = await ItemFolha.find({ folha_id: folha._id })
-    .populate('funcionario_id', 'nome email departamento_id cargo_id')
-    // Popula o "nome" do cargo para o front-end conseguir renderizar corretamente.
-    .populate('funcionario_id.cargo_id', 'nome titulo');
+    .populate({
+      path: 'funcionario_id',
+      select: 'nome email codigo_interno nacionalidade data_admissao data_saida departamento_id cargo_id sub_unidade_id num_dependentes local_trabalho',
+      populate: [
+        { path: 'departamento_id', select: 'nome' },
+        { path: 'cargo_id', select: 'nome titulo salario_base' },
+        { path: 'sub_unidade_id', select: 'nome tipo codigo' },
+      ],
+    })
+    .sort({ 'funcionario_id.nome': 1 });
 
   res.status(200).json({
     status: 'success',
@@ -214,25 +232,40 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
 
     await Promise.all(
       funcionarios.map(async (func) => {
-        // Verificar se já existe item para este funcionário
         const itemExistente = await ItemFolha.findOne({
           folha_id: folha._id,
-          funcionario_id: func._id
+          funcionario_id: func._id,
         });
 
         const proRataAudit = getProRataAudit(func, periodStart, periodEnd);
         const proRata = proRataAudit.ratio;
         if (proRata <= 0) return;
-        const salarioBase = (func.cargo_id?.salario_base ?? 0) * proRata;
 
-        // Estratégia B: benefícios são a única fonte de valores variáveis.
+        const salarioBaseIntegral = func.cargo_id?.salario_base ?? 0;
+        const salarioProRata = round2(salarioBaseIntegral * proRata);
+        const salarioDiario = calcSalarioDiario(salarioBaseIntegral, proRataAudit.diasPeriodo);
+        const baseBonus = salarioBaseIntegral;
+
+        // Ausências não justificadas no período
+        const faltas = await Falta.find({
+          funcionario_id: func._id,
+          data: { $gte: periodStart, $lte: periodEnd },
+          tipo: 'Não Justificada',
+        });
+        const ausenciaDias = faltas.length;
+        const diasCalculoSalario = Math.max(0, proRataAudit.diasElegiveis - ausenciaDias);
+        const diasInss = proRataAudit.diasElegiveis;
+
+        // Benefícios
         const atribuicoesBeneficios = await BeneficioFuncionario.find({
           funcionario_id: func._id,
           status: 'Ativo',
-        }).populate('beneficio_id', 'tipo frequencia status');
+        }).populate('beneficio_id', 'nome tipo frequencia status');
 
         let beneficioTransporteValor = 0;
         let beneficioAlimentacaoValor = 0;
+        let allowanceCombustivel = 0;
+        let allowanceTelefone = 0;
         let beneficiosOutrosValor = 0;
 
         for (const atribuicao of atribuicoesBeneficios) {
@@ -254,97 +287,159 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
             continue;
           }
 
-          const valor = Number(atribuicao.valor || 0);
+          const valor = Number(atribuicao.valor || 0) * proRata;
           const tipo = String(beneficio.tipo || '').toLowerCase();
-          if (tipo === 'transporte') beneficioTransporteValor += valor;
-          else if (tipo === 'alimentação' || tipo === 'alimentacao') beneficioAlimentacaoValor += valor;
-          else beneficiosOutrosValor += valor;
+          const cat = categorizeBeneficio(beneficio, valor);
+
+          allowanceCombustivel += cat.combustivel;
+          allowanceTelefone += cat.telefone;
+
+          if (tipo === 'transporte') {
+            beneficioTransporteValor += valor;
+          } else if (tipo === 'alimentação' || tipo === 'alimentacao') {
+            beneficioAlimentacaoValor += valor;
+          } else if (cat.combustivel || cat.telefone) {
+            // já contabilizado em allowance
+          } else {
+            beneficiosOutrosValor += valor;
+          }
         }
 
-        beneficioTransporteValor *= proRata;
-        beneficioAlimentacaoValor *= proRata;
-
-        // Horas extras aprovadas
-        const horasExtras = await HoraExtra.aggregate([
-          {
-            $match: {
-              funcionario_id: func._id,
-              status: 'Aprovado',
-              data: {
-                $gte: new Date(`${mesRef}-01`),
-                $lte: new Date(`${mesRef}-31`)
-              }
-            }
+        // Horas extras aprovadas — separar dia normal vs fim de semana
+        const horasExtrasRecords = await HoraExtra.find({
+          funcionario_id: func._id,
+          status: 'Aprovado',
+          data: {
+            $gte: new Date(`${mesRef}-01`),
+            $lte: new Date(`${mesRef}-31`),
           },
-          { $group: { _id: null, total: { $sum: { $ifNull: ['$valor_pago', 0] } } } }
-        ]);
-        const horasExtrasValor = horasExtras.length > 0 ? horasExtras[0].total : 0;
+        });
 
-        // Bónus aprovados
-        const bonus = await Bonus.aggregate([
-          {
-            $match: {
-              funcionario_id: func._id,
-              status: 'Aprovado'
-            }
+        let horasExtrasDiaNormal = 0;
+        let horasExtrasFeriado = 0;
+        let horasExtrasValor = 0;
+
+        for (const he of horasExtrasRecords) {
+          const horas = Number(he.horas || 0);
+          const valor = Number(he.valor_pago || 0);
+          horasExtrasValor += valor;
+          if (isWeekend(he.data)) {
+            horasExtrasFeriado += horas;
+          } else {
+            horasExtrasDiaNormal += horas;
+          }
+        }
+
+        // Bónus aprovados do mês
+        const bonusRecords = await Bonus.find({
+          funcionario_id: func._id,
+          status: 'Aprovado',
+          data: {
+            $gte: new Date(`${mesRef}-01`),
+            $lte: new Date(`${mesRef}-31`),
           },
-          { $group: { _id: null, total: { $sum: '$valor' } } }
-        ]);
-        const bonusTotal = (bonus.length > 0 ? bonus[0].total : 0) + beneficiosOutrosValor;
+        });
+        const allowanceBonus = bonusRecords.reduce((s, b) => s + Number(b.valor || 0), 0);
+        const bonusTotal = allowanceBonus + beneficiosOutrosValor;
 
-        // Descontos pendentes/aplicados
-        const descontos = await Desconto.aggregate([
-          {
-            $match: {
-              funcionario_id: func._id,
-              mes_aplicacao: mesRef,
-              status: { $in: ['Pendente', 'Aplicado'] }
-            }
-          },
-          { $group: { _id: null, total: { $sum: '$valor' } } }
-        ]);
-        const descontosTotal = descontos.length > 0 ? descontos[0].total : 0;
+        // Descontos por tipo
+        const descontosRecords = await Desconto.find({
+          funcionario_id: func._id,
+          mes_aplicacao: mesRef,
+          status: { $in: ['Pendente', 'Aplicado'] },
+        });
 
-        // Se já existir item (reprocessamento), atualiza; caso contrário, cria.
-        // Isso garante que a geração de recibos funcione usando status 'Processado'/'Pago'.
+        let descontoINSSManual = 0;
+        let descontoIRPSManual = 0;
+        let adjustmentDeduct = 0;
+        let adjustmentPlus = 0;
+
+        for (const d of descontosRecords) {
+          const valor = Number(d.valor || 0);
+          switch (d.tipo) {
+            case 'INSS':
+              descontoINSSManual += valor;
+              break;
+            case 'IRS':
+              descontoIRPSManual += valor;
+              break;
+            case 'Falta':
+            case 'Atraso':
+            case 'Adiantamento':
+            case 'Empréstimo':
+            case 'Seguro':
+            case 'Outros':
+              adjustmentDeduct += valor;
+              break;
+            default:
+              adjustmentDeduct += valor;
+          }
+        }
+
+        const inssTrabalhador = descontoINSSManual > 0
+          ? round2(descontoINSSManual)
+          : calcINSSTrabalhador(salarioProRata);
+        const inssEmpregador = calcINSSEmpregador(salarioProRata);
+        const quotaSindical = calcQuotaSindical(salarioProRata);
+
+        const numDependentes = Number(func.num_dependentes || 0);
+        const rendimentoTributavel = salarioProRata + horasExtrasValor + allowanceBonus +
+          allowanceCombustivel + allowanceTelefone + beneficioTransporteValor + beneficioAlimentacaoValor;
+        const irps = descontoIRPSManual > 0
+          ? round2(descontoIRPSManual)
+          : calcIRPS(rendimentoTributavel - inssTrabalhador, numDependentes);
+
+        const descontosTotal = round2(
+          inssTrabalhador + irps + quotaSindical + adjustmentDeduct
+        );
+
+        const itemData = {
+          salario_base_integral: salarioBaseIntegral,
+          salario_base: salarioProRata,
+          salario_diario: salarioDiario,
+          base_bonus: baseBonus,
+          beneficio_transporte_valor: beneficioTransporteValor,
+          beneficio_alimentacao_valor: beneficioAlimentacaoValor,
+          horas_extras_valor: horasExtrasValor,
+          horas_extras_dia_normal: horasExtrasDiaNormal,
+          horas_extras_feriado: horasExtrasFeriado,
+          turno_noturno_dias: 0,
+          salario_noturno: 0,
+          bonus_total: bonusTotal,
+          allowance_bonus: allowanceBonus,
+          allowance_combustivel: allowanceCombustivel,
+          allowance_telefone: allowanceTelefone,
+          adjustment_plus: adjustmentPlus,
+          adjustment_deduct: adjustmentDeduct,
+          inss_trabalhador: inssTrabalhador,
+          inss_empregador: inssEmpregador,
+          irps,
+          quota_sindical: quotaSindical,
+          num_dependentes: numDependentes,
+          descontos_total: descontosTotal,
+          dias_inss: diasInss,
+          ausencia_dias: ausenciaDias,
+          dias_elegiveis: diasCalculoSalario,
+          dias_periodo: proRataAudit.diasPeriodo,
+          percentual_pro_rata: proRata,
+          status: 'Processado',
+        };
+
         let item;
         if (itemExistente) {
-          itemExistente.salario_base = salarioBase;
-          itemExistente.beneficio_transporte_valor = beneficioTransporteValor;
-          itemExistente.beneficio_alimentacao_valor = beneficioAlimentacaoValor;
-          itemExistente.horas_extras_valor = horasExtrasValor;
-          itemExistente.bonus_total = bonusTotal;
-          itemExistente.descontos_total = descontosTotal;
-          itemExistente.dias_elegiveis = proRataAudit.diasElegiveis;
-          itemExistente.dias_periodo = proRataAudit.diasPeriodo;
-          itemExistente.percentual_pro_rata = proRata;
-          itemExistente.status = 'Processado';
+          Object.assign(itemExistente, itemData);
           item = await itemExistente.save({ validateBeforeSave: false });
         } else {
           item = await ItemFolha.create({
             folha_id: folha._id,
             funcionario_id: func._id,
-            salario_base: salarioBase,
-            beneficio_transporte_valor: beneficioTransporteValor,
-            beneficio_alimentacao_valor: beneficioAlimentacaoValor,
-            horas_extras_valor: horasExtrasValor,
-            bonus_total: bonusTotal,
-            descontos_total: descontosTotal,
-            dias_elegiveis: proRataAudit.diasElegiveis,
-            dias_periodo: proRataAudit.diasPeriodo,
-            percentual_pro_rata: proRata,
-            status: 'Processado'
+            ...itemData,
           });
         }
 
-        totalBruto +=
-          salarioBase +
-          horasExtrasValor +
-          bonusTotal +
-          beneficioTransporteValor +
-          beneficioAlimentacaoValor;
-        totalDescontos += descontosTotal;
-        totalLiquido += item.salario_liquido;
+        totalBruto += item.salario_total || 0;
+        totalDescontos += item.descontos_total || 0;
+        totalLiquido += item.salario_liquido || 0;
       })
     );
 

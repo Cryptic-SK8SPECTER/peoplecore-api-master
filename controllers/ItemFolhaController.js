@@ -13,6 +13,23 @@ exports.filterByEmpresa = catchAsync(async (req, res, next) => {
   next();
 });
 
+// Verificar duplicidade de item (funcionário + folha)
+exports.verificarDuplicidadeItem = catchAsync(async (req, res, next) => {
+  const { folha_id, funcionario_id } = req.body;
+  if (!folha_id || !funcionario_id) return next();
+
+  const existe = await ItemFolha.findOne({ folha_id, funcionario_id });
+  if (existe) {
+    return next(
+      new AppError(
+        'Este funcionário já possui salário atribuído nesta folha de pagamento',
+        400
+      )
+    );
+  }
+  next();
+});
+
 // Obter itens por folha de pagamento
 exports.getByFolha = catchAsync(async (req, res, next) => {
   const itens = await ItemFolha.find({ folha_id: req.params.folhaId })

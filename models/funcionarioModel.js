@@ -145,6 +145,11 @@ const funcionarioSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    num_dependentes: {
+      type: Number,
+      default: 0,
+      min: [0, 'Número de dependentes não pode ser negativo'],
+    },
     visto_trabalho: {
       type: String,
       trim: true,

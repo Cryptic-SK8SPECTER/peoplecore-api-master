@@ -48,5 +48,7 @@ const folhaPagamentoSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Apenas uma folha por empresa/mês/ano
+folhaPagamentoSchema.index({ empresa_id: 1, mes: 1, ano: 1 }, { unique: true });
 
 module.exports = mongoose.model('FolhaPagamento', folhaPagamentoSchema);

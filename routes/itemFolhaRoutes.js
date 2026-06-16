@@ -20,6 +20,7 @@ router
   .get(authController.allowGroup('PAYROLL'), itemFolhaController.filterByEmpresa, itemFolhaController.getAllItensFolha)
   .post(
     authController.allowGroup('PAYROLL'),
+    itemFolhaController.verificarDuplicidadeItem,
     itemFolhaController.createItemFolha
   );
 
