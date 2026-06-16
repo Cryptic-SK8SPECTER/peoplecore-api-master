@@ -7,6 +7,7 @@ const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 const Email = require('./../utils/email');
 const { getClientUrl, buildResetPasswordUrl } = require('./../utils/clientUrl');
+const { obterPermissoesPorPerfilId } = require('./../utils/perfilPermissoes');
 
 const signToken = id => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -34,7 +35,7 @@ const validarAcessoEmpresa = async (user) => {
 };
 
 
-const createSendToken = (user, statusCode, res) => {
+const createSendToken = async (user, statusCode, res) => {
   const token = signToken(user._id);
   const cookieOptions = {
     expires: new Date(
@@ -49,11 +50,15 @@ const createSendToken = (user, statusCode, res) => {
   // Remove password from output
   user.password = undefined;
 
+  await user.populate({ path: 'perfil_id', select: 'nome' });
+  const permissoes = await obterPermissoesPorPerfilId(user.perfil_id);
+
   res.status(statusCode).json({
     status: 'success',
     token,
     data: {
-      user
+      data: user,
+      permissoes,
     }
   });
 };
@@ -73,7 +78,7 @@ exports.signup = catchAsync(async (req, res, next) => {
   // console.log(url);
   await new Email(newUser, url).sendWelcome();
 
-  createSendToken(newUser, 201, res);
+  await createSendToken(newUser, 201, res);
 });
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -95,7 +100,7 @@ exports.login = catchAsync(async (req, res, next) => {
   await validarAcessoEmpresa(user);
 
   // 3) If everything ok, send token to client
-  createSendToken(user, 200, res);
+  await createSendToken(user, 200, res);
 });
 
 exports.logout = (req, res) => {
@@ -299,7 +304,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 </html>`);
   }
 
-  createSendToken(user, 200, res);
+  await createSendToken(user, 200, res);
 });
 
 exports.updatePassword = catchAsync(async (req, res, next) => {
@@ -318,5 +323,5 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   // User.findByIdAndUpdate will NOT work as intended!
 
   // 4) Log user in, send JWT
-  createSendToken(user, 200, res);
+  await createSendToken(user, 200, res);
 });

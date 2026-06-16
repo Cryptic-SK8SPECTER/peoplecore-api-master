@@ -3,6 +3,9 @@ const Perfil = require('./../models/perfilModel');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
+const {
+  garantirPermissoesPerfil,
+} = require('./../utils/perfilPermissoes');
 
 // Middleware: filtra por perfis da empresa do usuário
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
@@ -117,31 +120,7 @@ exports.inicializarPerfil = catchAsync(async (req, res, next) => {
     return next(new AppError('Perfil não encontrado', 404));
   }
 
-  const modulos = [
-    'Dashboard', 'Funcionários', 'Departamentos', 'Cargos',
-    'Presenças', 'Férias', 'Folha Pagamento', 'Avaliações',
-    'Recrutamento', 'Documentos', 'Configurações', 'Relatórios'
-  ];
-
-  let criadas = 0;
-
-  await Promise.all(
-    modulos.map(async (modulo) => {
-      const existe = await Permissao.findOne({
-        perfil_id: req.params.perfilId,
-        modulo
-      });
-
-      if (!existe) {
-        await Permissao.create({
-          perfil_id: req.params.perfilId,
-          modulo,
-          ver: modulo === 'Dashboard'
-        });
-        criadas++;
-      }
-    })
-  );
+  const criadas = await garantirPermissoesPerfil(req.params.perfilId);
 
   const permissoes = await Permissao.find({ perfil_id: req.params.perfilId }).sort('modulo');
 

@@ -5,6 +5,7 @@ const Funcionario = require('./../models/funcionarioModel');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
+const { obterPermissoesPorPerfilId } = require('./../utils/perfilPermissoes');
 
 // ─── Multer: upload de foto ───────────────────────────────────
 const multerStorage = multer.memoryStorage();
@@ -66,6 +67,35 @@ exports.getMe = (req, res, next) => {
   req.params.id = req.user.id;
   next();
 };
+
+// ─── Perfil do utilizador logado (com permissões do sistema) ───
+exports.getMeUsuario = catchAsync(async (req, res, next) => {
+  const doc = await Usuario.findById(req.user.id).populate([
+    {
+      path: 'funcionario_id',
+      select: 'nome departamento_id cargo_id',
+      populate: [
+        { path: 'departamento_id', select: 'nome' },
+        { path: 'cargo_id', select: 'nome titulo nivel' },
+      ],
+    },
+    { path: 'perfil_id', select: 'nome' },
+  ]);
+
+  if (!doc) {
+    return next(new AppError('Utilizador não encontrado', 404));
+  }
+
+  const permissoes = await obterPermissoesPorPerfilId(doc.perfil_id);
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      data: doc,
+      permissoes,
+    },
+  });
+});
 
 // ─── Atualizar os meus dados (sem password) ───────────────────
 exports.updateMe = catchAsync(async (req, res, next) => {

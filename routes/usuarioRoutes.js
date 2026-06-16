@@ -17,7 +17,7 @@ router.use(authController.protect);
 
 // ─── Rotas do utilizador logado ───────────────────────────────
 router.patch('/updateMyPassword', authController.updatePassword);
-router.get('/me', usuarioController.getMe, usuarioController.getUsuario);
+router.get('/me', usuarioController.getMeUsuario);
 router.patch(
   '/updateMe',
   usuarioController.uploadUserPhoto,

@@ -5,6 +5,10 @@ const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 const generateRandomPassword = require('./../utils/passwordGenerator');
 const Email = require('./../utils/email');
+const {
+  validarPerfilEmpresa,
+  garantirPermissoesPerfil,
+} = require('./../utils/perfilPermissoes');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -340,13 +344,24 @@ exports.createFuncionario = catchAsync(async (req, res, next) => {
     req.body.email = req.body.email_pessoal;
   }
 
+  const { perfil_id } = req.body;
+  delete req.body.perfil_id;
+
+  if (!perfil_id) {
+    return next(new AppError('Perfil é obrigatório ao registar funcionário', 400));
+  }
+
+  const empresaId = req.body.empresa_id || req.user.empresa_id;
+  await validarPerfilEmpresa(perfil_id, empresaId);
+  await garantirPermissoesPerfil(perfil_id);
+
   // 1) Criar o funcionário
   const funcionario = await Funcionario.create(req.body);
 
   // 2) Gerar senha aleatória
   const randomPassword = generateRandomPassword();
 
-  // 3) Criar usuário associado
+  // 3) Criar usuário associado ao perfil (herda permissões do perfil)
   const usuario = await Usuario.create({
     funcionario_id: funcionario._id,
     empresa_id: funcionario.empresa_id,
@@ -355,6 +370,7 @@ exports.createFuncionario = catchAsync(async (req, res, next) => {
     password: randomPassword,
     passwordConfirm: randomPassword,
     role: 'funcionario',
+    perfil_id,
   });
 
   // 4) Enviar email com a senha
