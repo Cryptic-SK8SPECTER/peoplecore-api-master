@@ -71,30 +71,36 @@ exports.gerarRecibos = catchAsync(async (req, res, next) => {
     return next(new AppError('folha_id, mes e ano são obrigatórios', 400));
   }
 
+  const anoNum = Number(ano);
+
   const itens = await ItemFolha.find({
     folha_id,
-    status: { $in: ['Processado', 'Pago'] }
+    status: { $in: ['Processado', 'Pago'] },
   }).populate('funcionario_id');
 
   const empresa = await Empresa.findById(req.user.empresa_id);
 
   let criados = 0;
   let existentes = 0;
+  const erros = [];
 
-  await Promise.all(
-    itens.map(async (item) => {
+  for (const item of itens) {
+    try {
       const funcionario = item.funcionario_id;
-      if (!funcionario || funcionario.empresa_id.toString() !== req.user.empresa_id.toString()) return;
+      if (!funcionario || funcionario.empresa_id.toString() !== req.user.empresa_id.toString()) {
+        continue;
+      }
 
       const existe = await Recibo.findOne({
-        funcionario_id: funcionario._id,
-        mes,
-        ano
+        $or: [
+          { item_folha_id: item._id },
+          { funcionario_id: funcionario._id, mes, ano: anoNum },
+        ],
       });
 
       if (existe) {
         existentes++;
-        return;
+        continue;
       }
 
       const [cargo, departamento] = await Promise.all([
@@ -109,17 +115,26 @@ exports.gerarRecibos = catchAsync(async (req, res, next) => {
         cargo,
         departamento,
         mes,
-        ano,
+        ano: anoNum,
       });
 
       await Recibo.create(payload);
       criados++;
-    })
-  );
+    } catch (err) {
+      erros.push({
+        item_folha_id: item._id,
+        message: err.message,
+      });
+    }
+  }
+
+  if (erros.length > 0 && criados === 0 && existentes === 0) {
+    return next(new AppError(`Erro ao gerar recibos: ${erros[0].message}`, 500));
+  }
 
   res.status(201).json({
     status: 'success',
-    data: { criados, existentes }
+    data: { criados, existentes, erros: erros.length > 0 ? erros : undefined },
   });
 });
 

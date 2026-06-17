@@ -120,9 +120,16 @@ function fringeBenefits(rendimentos) {
     .reduce((acc, l) => acc + Number(l.valor || 0), 0);
 }
 
+function mesesAnterioresNomes(mesIdx) {
+  if (mesIdx === undefined || mesIdx === null) return [];
+  return Object.entries(MESES)
+    .filter(([, idx]) => idx < mesIdx)
+    .map(([nome]) => nome);
+}
+
 async function calcularYtd(funcionarioId, mes, ano, totaisMensais, item) {
   const mesIdx = MESES[mes];
-  const mesesAnteriores = Object.entries(MesesAnteriores(mesIdx));
+  const mesesAnteriores = mesesAnterioresNomes(mesIdx);
 
   const recibosAnteriores = await Recibo.find({
     funcionario_id: funcionarioId,
@@ -152,12 +159,6 @@ async function calcularYtd(funcionarioId, mes, ano, totaisMensais, item) {
       Number(ultimoYtd.contribuicoes_empresa_tributaveis || 0) + contribEmpresaMes,
     beneficios_fringe: Number(ultimoYtd.beneficios_fringe || 0) + fringeMes,
   };
-}
-
-function MesesAnteriores(mesIdx) {
-  return Object.fromEntries(
-    Object.entries(MESES).filter(([, idx]) => idx < mesIdx),
-  );
 }
 
 async function buildReciboPayload({ item, funcionario, empresa, cargo, departamento, mes, ano }) {

@@ -1,6 +1,7 @@
 const FolhaPagamento = require('./../models/folhaPagamentoModel');
 const ItemFolha = require('./../models/itemFolhaModel');
 const Funcionario = require('./../models/funcionarioModel');
+require('./../models/subUnidadeModel');
 const Bonus = require('./../models/bonusModel');
 const Desconto = require('./../models/descontoModel');
 const HoraExtra = require('./../models/horaExtraModel');
