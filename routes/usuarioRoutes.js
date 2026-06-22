@@ -27,7 +27,7 @@ router.patch(
 router.delete('/deleteMe', usuarioController.deleteMe);
 
 // ─── Rotas restritas à administração ──────────────────────────
-router.use(authController.allowGroup('ADMIN'));
+router.use(authController.checkPermissaoModulo('Configurações'));
 
 // Rotas específicas
 router.get('/empresa', usuarioController.getUsuariosDaEmpresa);
@@ -35,6 +35,7 @@ router.get('/estatisticas', usuarioController.getEstatisticas);
 router.post('/criar', usuarioController.criarUsuario);
 router.patch('/:id/status', usuarioController.alterarStatus);
 router.patch('/:id/role', usuarioController.alterarRole);
+router.patch('/:id/perfil', usuarioController.alterarPerfil);
 router.patch('/:id/reset-password', usuarioController.resetPasswordAdmin);
 
 // CRUD padrão
@@ -46,7 +47,10 @@ router
 router
   .route('/:id')
   .get(usuarioController.getUsuario)
-  .patch(usuarioController.updateUsuario)
+  .patch(
+    usuarioController.validarPerfilAtribuicao,
+    usuarioController.updateUsuario,
+  )
   .delete(usuarioController.deleteUsuario);
 
 module.exports = router;

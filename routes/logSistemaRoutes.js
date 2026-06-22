@@ -8,32 +8,32 @@ const router = express.Router();
 router.use(authController.protect);
 
 // Rotas específicas
-router.get('/estatisticas', authController.allowGroup('HISTORY_READ'), logSistemaController.getEstatisticas);
-router.get('/periodo', authController.allowGroup('HISTORY_READ'), logSistemaController.filterByEmpresa, logSistemaController.getByPeriodo);
-router.get('/pesquisar', authController.allowGroup('HISTORY_READ'), logSistemaController.pesquisar);
-router.get('/modulo/:modulo', authController.allowGroup('HISTORY_READ'), logSistemaController.getByModulo);
-router.get('/severidade/:severidade', authController.allowGroup('HISTORY_READ'), logSistemaController.getBySeveridade);
-router.get('/usuario/:usuarioId', authController.allowGroup('HISTORY_READ'), logSistemaController.getByUsuario);
+router.get('/estatisticas', authController.checkPermissao('Relatórios', 'ver'), logSistemaController.getEstatisticas);
+router.get('/periodo', authController.checkPermissao('Relatórios', 'ver'), logSistemaController.filterByEmpresa, logSistemaController.getByPeriodo);
+router.get('/pesquisar', authController.checkPermissao('Relatórios', 'ver'), logSistemaController.pesquisar);
+router.get('/modulo/:modulo', authController.checkPermissao('Relatórios', 'ver'), logSistemaController.getByModulo);
+router.get('/severidade/:severidade', authController.checkPermissao('Relatórios', 'ver'), logSistemaController.getBySeveridade);
+router.get('/usuario/:usuarioId', authController.checkPermissao('Relatórios', 'ver'), logSistemaController.getByUsuario);
 router.get(
   '/funcionario/:funcionarioId',
-  authController.allowGroup('HISTORY_READ'),
+  authController.checkPermissao('Relatórios', 'ver'),
   logSistemaController.getByFuncionario,
 );
 
 // CRUD padrão
 router
   .route('/')
-  .get(authController.allowGroup('HISTORY_READ'), logSistemaController.filterByEmpresa, logSistemaController.getAllLogs)
+  .get(authController.checkPermissao('Relatórios', 'ver'), logSistemaController.filterByEmpresa, logSistemaController.getAllLogs)
   .post(
-    authController.allowGroup('PEOPLE_MANAGEMENT'),
+    authController.checkPermissaoModulo('Relatórios'),
     logSistemaController.setEmpresaId,
     logSistemaController.createLog
   );
 
 router
   .route('/:id')
-  .get(authController.allowGroup('HISTORY_READ'), logSistemaController.getLog)
-  .patch(authController.allowGroup('PEOPLE_MANAGEMENT'), logSistemaController.updateLog)
-  .delete(authController.allowGroup('ADMIN_ONLY'), logSistemaController.deleteLog);
+  .get(authController.checkPermissao('Relatórios', 'ver'), logSistemaController.getLog)
+  .patch(authController.checkPermissaoModulo('Relatórios'), logSistemaController.updateLog)
+  .delete(authController.checkPermissao('Configurações', 'excluir'), logSistemaController.deleteLog);
 
 module.exports = router;

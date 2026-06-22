@@ -7,7 +7,7 @@ const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 const Email = require('./../utils/email');
 const { getClientUrl, buildResetPasswordUrl } = require('./../utils/clientUrl');
-const { obterPermissoesPorPerfilId } = require('./../utils/perfilPermissoes');
+const { montarSessaoUsuario, carregarPermissoesUsuario, temPermissao, temAlgumaPermissao, ACAO_POR_METODO, sincronizarPerfilUsuario, obterPermissoesFallbackRole } = require('./../utils/perfilPermissoes');
 
 const signToken = id => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -50,15 +50,15 @@ const createSendToken = async (user, statusCode, res) => {
   // Remove password from output
   user.password = undefined;
 
-  await user.populate({ path: 'perfil_id', select: 'nome' });
-  const permissoes = await obterPermissoesPorPerfilId(user.perfil_id);
+  const sessao = await montarSessaoUsuario(user._id);
 
   res.status(statusCode).json({
     status: 'success',
     token,
     data: {
-      data: user,
-      permissoes,
+      data: sessao.usuario,
+      perfil: sessao.perfil,
+      permissoes: sessao.permissoes,
     }
   });
 };
@@ -67,15 +67,17 @@ exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await Usuario.create({
     empresa_id: req.body.empresa_id,
     employee: req.body.employee,
-    name: req.body.name,
-    role: req.body.role,
+    nome: req.body.nome || req.body.name,
+    role: req.body.role || 'funcionario',
     email: req.body.email,
     password: req.body.password,
-    passwordConfirm: req.body.passwordConfirm
+    passwordConfirm: req.body.passwordConfirm,
+    perfil_id: req.body.perfil_id,
   });
 
+  await sincronizarPerfilUsuario(newUser);
+
   const url = `${req.protocol}://${req.get('host')}/me`;
-  // console.log(url);
   await new Email(newUser, url).sendWelcome();
 
   await createSendToken(newUser, 201, res);
@@ -154,8 +156,13 @@ exports.protect = catchAsync(async (req, res, next) => {
   }
   await validarAcessoEmpresa(currentUser);
 
+  await sincronizarPerfilUsuario(currentUser);
+
+  currentUser.permissoes = await carregarPermissoesUsuario(currentUser);
+
   // GRANT ACCESS TO PROTECTED ROUTE
   req.user = currentUser;
+  req.userPermissoes = currentUser.permissoes;
   res.locals.user = currentUser;
   next();
 });
@@ -192,33 +199,58 @@ exports.isLoggedIn = async (req, res, next) => {
   next();
 };
 
-exports.restrictTo = (...roles) => {
-  return (req, res, next) => {
-    // roles ['admin', 'lead-guide']. role='user'
-    if (!roles.includes(req.user.role)) {
-      return next(
-        new AppError('You do not have permission to perform this action', 403)
-      );
-    }
+exports.onlySuperAdmin = (req, res, next) => {
+  if (req.user?.role === 'super-admin') return next();
+  return next(
+    new AppError('Não tem permissão para realizar esta ação', 403),
+  );
+};
 
-    next();
+const verificarPermissao = (req, modulo, acao) => {
+  if (req.user?.role === 'super-admin') return true;
+
+  let permissoes = req.userPermissoes || [];
+  if (!permissoes.length && req.user?.role) {
+    permissoes = obterPermissoesFallbackRole(req.user.role);
+  }
+
+  return temPermissao(permissoes, modulo, acao);
+};
+
+exports.checkPermissao = (modulo, acao) => {
+  return (req, res, next) => {
+    if (verificarPermissao(req, modulo, acao)) return next();
+    return next(
+      new AppError('Não tem permissão para realizar esta ação', 403),
+    );
   };
 };
 
-// Role groups (single source for backend route guards)
-const ROLE_GROUPS = {
-  ADMIN: ['admin', 'super-admin'],
-  ADMIN_ONLY: ['admin', 'super-admin'],
-  PEOPLE_MANAGEMENT: ['admin', 'rh', 'super-admin'],
-  LEADERSHIP: ['admin', 'rh', 'gestor', 'super-admin'],
-  PAYROLL: ['admin', 'financeiro', 'super-admin'],
-  AUDIT_READ: ['admin', 'super-admin', 'auditor'],
-  HISTORY_READ: ['admin', 'rh', 'auditor', 'financeiro', 'super-admin'],
+exports.checkPermissaoModulo = (modulo) => {
+  return (req, res, next) => {
+    const acao = ACAO_POR_METODO[req.method] || 'ver';
+    if (verificarPermissao(req, modulo, acao)) return next();
+    return next(
+      new AppError('Não tem permissão para realizar esta ação', 403),
+    );
+  };
 };
 
-exports.ROLE_GROUPS = ROLE_GROUPS;
-exports.allowRoles = (...roles) => exports.restrictTo(...roles);
-exports.allowGroup = (groupName) => exports.restrictTo(...(ROLE_GROUPS[groupName] || []));
+exports.checkPermissaoQualquer = (...verificacoes) => {
+  return (req, res, next) => {
+    if (req.user?.role === 'super-admin') return next();
+
+    let permissoes = req.userPermissoes || [];
+    if (!permissoes.length && req.user?.role) {
+      permissoes = obterPermissoesFallbackRole(req.user.role);
+    }
+
+    if (temAlgumaPermissao(permissoes, verificacoes)) return next();
+    return next(
+      new AppError('Não tem permissão para realizar esta ação', 403),
+    );
+  };
+};
 
 exports.forgotPassword = catchAsync(async (req, res, next) => {
   // 1) Get user based on POSTed email

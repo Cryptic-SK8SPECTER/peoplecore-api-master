@@ -12,14 +12,14 @@ router.get('/periodo', faltaController.filterByEmpresa, faltaController.getByPer
 router.get('/nao-justificadas', faltaController.getNaoJustificadas);
 router.get('/estatisticas', faltaController.getEstatisticas);
 router.get('/funcionario/:funcionarioId', faltaController.getByFuncionario);
-router.patch('/:id/justificar', authController.allowGroup('LEADERSHIP'), faltaController.justificarFalta);
+router.patch('/:id/justificar', authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']), faltaController.justificarFalta);
 
 // CRUD padrão
 router
   .route('/')
   .get(faltaController.filterByEmpresa, faltaController.getAllFaltas)
   .post(
-    authController.allowGroup('LEADERSHIP'),
+    authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']),
     faltaController.createFalta
   );
 
@@ -27,11 +27,11 @@ router
   .route('/:id')
   .get(faltaController.getFalta)
   .patch(
-    authController.allowGroup('LEADERSHIP'),
+    authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']),
     faltaController.updateFalta
   )
   .delete(
-    authController.allowGroup('LEADERSHIP'),
+    authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']),
     faltaController.deleteFalta
   );
 

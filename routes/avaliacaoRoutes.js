@@ -10,7 +10,7 @@ router.use('/:avaliacaoId/funcionarios', avaliacaoFuncionarioRouter);
 // Rotas públicas (usuários autenticados)
 router.get('/ativas', avaliacaoController.getAtivas);
 // Rotas restritas à liderança (admin/rh/gestor)
-router.use(authController.allowGroup('LEADERSHIP'));
+router.use(authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']));
 router
   .route('/')
   .get(

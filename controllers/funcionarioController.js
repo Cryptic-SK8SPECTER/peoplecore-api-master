@@ -8,6 +8,8 @@ const Email = require('./../utils/email');
 const {
   validarPerfilEmpresa,
   garantirPermissoesPerfil,
+  resolverPerfilPadraoEmpresa,
+  temPermissao,
 } = require('./../utils/perfilPermissoes');
 const multer = require('multer');
 const fs = require('fs');
@@ -145,29 +147,27 @@ exports.setEmpresaId = (req, res, next) => {
 // “solto”), então ele só pode atualizar o próprio funcionario.
 exports.restrictToOwnFuncionario = (req, res, next) => {
   try {
-    const loggedFuncionarioId = req.user?.funcionario_id;
-    const allowedRoles = ['admin', 'rh', 'super-admin', 'funcionario'];
+    if (req.user?.role === 'super-admin') return next();
 
-    if (!req.user || !allowedRoles.includes(req.user.role)) {
-      return next(
-        new AppError('You do not have permission to perform this action', 403),
-      );
-    }
-
-    if (!loggedFuncionarioId) {
-      // Funcionário tem de estar associado a um registro de funcionario
-      if (req.user.role === 'funcionario') {
-        return next(new AppError('Não tem permissão para editar este colaborador', 403));
-      }
+    const permissoes = req.userPermissoes || [];
+    if (temPermissao(permissoes, 'Funcionários', 'editar')) {
       return next();
     }
 
-    // Only block when trying to update a different funcionario
+    const loggedFuncionarioId = req.user?.funcionario_id;
+
+    if (!loggedFuncionarioId) {
+      return next(
+        new AppError('Não tem permissão para editar este colaborador', 403),
+      );
+    }
+
     if (String(loggedFuncionarioId) !== String(req.params.id)) {
       return next(
         new AppError('Não tem permissão para editar este colaborador', 403),
       );
     }
+
     return next();
   } catch (e) {
     return next(new AppError('Erro de autorização', 403));
@@ -344,14 +344,16 @@ exports.createFuncionario = catchAsync(async (req, res, next) => {
     req.body.email = req.body.email_pessoal;
   }
 
-  const { perfil_id } = req.body;
+  let { perfil_id } = req.body;
   delete req.body.perfil_id;
 
+  const empresaId = req.body.empresa_id || req.user.empresa_id;
+
   if (!perfil_id) {
-    return next(new AppError('Perfil é obrigatório ao registar funcionário', 400));
+    const perfilPadrao = await resolverPerfilPadraoEmpresa(empresaId, 'funcionario');
+    perfil_id = perfilPadrao._id;
   }
 
-  const empresaId = req.body.empresa_id || req.user.empresa_id;
   await validarPerfilEmpresa(perfil_id, empresaId);
   await garantirPermissoesPerfil(perfil_id);
 

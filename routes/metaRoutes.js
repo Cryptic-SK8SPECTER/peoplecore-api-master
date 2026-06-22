@@ -13,14 +13,14 @@ router.get('/status/:status', metaController.getByStatus);
 router.get('/avaliacao/:avaliacaoId', metaController.getByAvaliacao);
 router.get('/funcionario/:funcionarioId', metaController.getByFuncionario);
 router.patch('/:id/progresso', metaController.atualizarProgresso);
-router.patch('/:id/cancelar', authController.allowGroup('LEADERSHIP'), metaController.cancelarMeta);
+router.patch('/:id/cancelar', authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']), metaController.cancelarMeta);
 
 // CRUD padrão
 router
   .route('/')
   .get(metaController.filterByEmpresa, metaController.getAllMetas)
   .post(
-    authController.allowGroup('LEADERSHIP'),
+    authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']),
     metaController.setEmpresaId,
     metaController.verificarFuncionario,
     metaController.createMeta
@@ -30,11 +30,11 @@ router
   .route('/:id')
   .get(metaController.getMeta)
   .patch(
-    authController.allowGroup('LEADERSHIP'),
+    authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']),
     metaController.updateMeta
   )
   .delete(
-    authController.allowGroup('LEADERSHIP'),
+    authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']),
     metaController.deleteMeta
   );
 

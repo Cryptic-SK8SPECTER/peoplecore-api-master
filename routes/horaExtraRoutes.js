@@ -11,7 +11,7 @@ router.use(authController.protect);
 router.get('/pendentes', horaExtraController.getPendentes);
 router.get('/estatisticas', horaExtraController.getEstatisticas);
 router.get('/funcionario/:funcionarioId', horaExtraController.getByFuncionario);
-router.patch('/:id/status', authController.allowGroup('LEADERSHIP'), horaExtraController.alterarStatus);
+router.patch('/:id/status', authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']), horaExtraController.alterarStatus);
 
 // CRUD padrão
 router
@@ -26,11 +26,11 @@ router
   .route('/:id')
   .get(horaExtraController.getHoraExtra)
   .patch(
-    authController.allowGroup('LEADERSHIP'),
+    authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']),
     horaExtraController.updateHoraExtra
   )
   .delete(
-    authController.allowGroup('LEADERSHIP'),
+    authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']),
     horaExtraController.deleteHoraExtra
   );
 

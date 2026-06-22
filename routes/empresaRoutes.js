@@ -11,12 +11,14 @@ router.use(authController.protect);
 router.get('/minha-empresa', empresaController.getMinhaEmpresa);
 router.get('/estatisticas', empresaController.getEstatisticas);
 
-// Rotas restritas a admin
-router.use(authController.restrictTo('admin', 'super-admin'));
+router.patch(
+  '/minha-empresa',
+  authController.checkPermissao('Configurações', 'editar'),
+  empresaController.updateMinhaEmpresa,
+);
 
-router.patch('/minha-empresa', empresaController.updateMinhaEmpresa);
-
-// CRUD completo (super admin)
+// CRUD completo (super admin da plataforma)
+router.use(authController.onlySuperAdmin);
 router
   .route('/')
   .get(empresaController.getAllEmpresas)

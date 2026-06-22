@@ -26,7 +26,7 @@ router.patch(
 );
 
 // Rotas restritas a admin/rh
-router.use(authController.restrictTo('admin', 'rh'));
+router.use(authController.checkPermissaoQualquer(['Configurações','ver'],['Funcionários','ver']));
 
 router
   .route('/')

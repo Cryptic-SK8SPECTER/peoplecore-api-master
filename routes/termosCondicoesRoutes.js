@@ -11,21 +11,21 @@ router.use(authController.protect);
 router.get('/ativos', termosCondicoesController.getTermosAtivos);
 
 // Rotas administrativas
-router.get('/estatisticas', authController.restrictTo('admin', 'rh'), termosCondicoesController.filterByEmpresa, termosCondicoesController.getEstatisticas);
-router.patch('/:id/publicar', authController.restrictTo('admin'), termosCondicoesController.publicar);
-router.patch('/:id/arquivar', authController.restrictTo('admin'), termosCondicoesController.arquivar);
-router.post('/:id/duplicar', authController.restrictTo('admin'), termosCondicoesController.duplicar);
+router.get('/estatisticas', authController.checkPermissaoQualquer(['Configurações','ver'],['Funcionários','ver']), termosCondicoesController.filterByEmpresa, termosCondicoesController.getEstatisticas);
+router.patch('/:id/publicar', authController.checkPermissaoModulo('Configurações'), termosCondicoesController.publicar);
+router.patch('/:id/arquivar', authController.checkPermissaoModulo('Configurações'), termosCondicoesController.arquivar);
+router.post('/:id/duplicar', authController.checkPermissaoModulo('Configurações'), termosCondicoesController.duplicar);
 
 // CRUD padrão
 router
   .route('/')
-  .get(authController.restrictTo('admin', 'rh'), termosCondicoesController.filterByEmpresa, termosCondicoesController.getAllTermosCondicoes)
-  .post(authController.restrictTo('admin'), termosCondicoesController.setEmpresaCriador, termosCondicoesController.createTermosCondicoes);
+  .get(authController.checkPermissaoQualquer(['Configurações','ver'],['Funcionários','ver']), termosCondicoesController.filterByEmpresa, termosCondicoesController.getAllTermosCondicoes)
+  .post(authController.checkPermissaoModulo('Configurações'), termosCondicoesController.setEmpresaCriador, termosCondicoesController.createTermosCondicoes);
 
 router
   .route('/:id')
-  .get(authController.restrictTo('admin', 'rh'), termosCondicoesController.getTermosCondicoes)
-  .patch(authController.restrictTo('admin'), termosCondicoesController.updateTermosCondicoes)
-  .delete(authController.restrictTo('admin'), termosCondicoesController.deleteTermosCondicoes);
+  .get(authController.checkPermissaoQualquer(['Configurações','ver'],['Funcionários','ver']), termosCondicoesController.getTermosCondicoes)
+  .patch(authController.checkPermissaoModulo('Configurações'), termosCondicoesController.updateTermosCondicoes)
+  .delete(authController.checkPermissaoModulo('Configurações'), termosCondicoesController.deleteTermosCondicoes);
 
 module.exports = router;

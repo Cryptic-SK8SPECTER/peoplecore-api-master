@@ -13,7 +13,7 @@ router.get('/departamento/:departamentoId', cargoController.getByDepartamento);
 router.get('/nivel/:nivel', cargoController.getByNivel);
 
 // Gestão de cargos — alinhado ao frontend (admin + rh)
-router.use(authController.allowGroup('PEOPLE_MANAGEMENT'));
+router.use(authController.checkPermissaoModulo('Cargos'));
 
 router.get('/estatisticas', cargoController.getEstatisticas);
 

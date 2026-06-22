@@ -54,7 +54,7 @@ router
   .route('/')
   .get(documentoController.filterByEmpresa, documentoController.getAllDocumentos)
   .post(
-    authController.allowGroup('PEOPLE_MANAGEMENT'),
+    authController.checkPermissaoModulo('Documentos'),
     documentoController.verificarFuncionario,
     upload.single('arquivo'),
     documentoController.mapUploadBody,
@@ -65,11 +65,11 @@ router
   .route('/:id')
   .get(documentoController.getDocumento)
   .patch(
-    authController.allowGroup('PEOPLE_MANAGEMENT'),
+    authController.checkPermissaoModulo('Documentos'),
     documentoController.updateDocumento
   )
   .delete(
-    authController.allowGroup('PEOPLE_MANAGEMENT'),
+    authController.checkPermissaoModulo('Documentos'),
     documentoController.deleteDocumento
   );
 

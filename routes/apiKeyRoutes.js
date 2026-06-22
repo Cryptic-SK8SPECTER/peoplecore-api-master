@@ -8,7 +8,7 @@ const router = express.Router();
 router.use(authController.protect);
 
 // Restringir tudo a admin
-router.use(authController.restrictTo('admin'));
+router.use(authController.checkPermissaoModulo('Configurações'));
 
 // Rotas especiais
 router.post('/validar', apiKeyController.validarChave);

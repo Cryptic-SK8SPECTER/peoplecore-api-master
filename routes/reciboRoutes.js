@@ -11,30 +11,30 @@ router.use(authController.protect);
 router.get('/meus', reciboController.getMeusRecibos);
 
 // Rotas específicas (payroll: admin/financeiro)
-router.get('/estatisticas', authController.allowGroup('PAYROLL'), reciboController.getEstatisticas);
-router.get('/mes/:mes/:ano', authController.allowGroup('PAYROLL'), reciboController.getByMesAno);
-router.get('/funcionario/:funcionarioId', authController.allowGroup('PAYROLL'), reciboController.getByFuncionario);
-router.post('/gerar', authController.allowGroup('PAYROLL'), reciboController.gerarRecibos);
-router.post('/:id/enviar-email', authController.allowGroup('PAYROLL'), reciboController.enviarReciboPorEmail);
+router.get('/estatisticas', authController.checkPermissaoModulo('Folha Pagamento'), reciboController.getEstatisticas);
+router.get('/mes/:mes/:ano', authController.checkPermissaoModulo('Folha Pagamento'), reciboController.getByMesAno);
+router.get('/funcionario/:funcionarioId', authController.checkPermissaoModulo('Folha Pagamento'), reciboController.getByFuncionario);
+router.post('/gerar', authController.checkPermissaoModulo('Folha Pagamento'), reciboController.gerarRecibos);
+router.post('/:id/enviar-email', authController.checkPermissaoModulo('Folha Pagamento'), reciboController.enviarReciboPorEmail);
 
 // CRUD padrão
 router
   .route('/')
-  .get(authController.allowGroup('PAYROLL'), reciboController.filterByEmpresa, reciboController.getAllRecibos)
+  .get(authController.checkPermissaoModulo('Folha Pagamento'), reciboController.filterByEmpresa, reciboController.getAllRecibos)
   .post(
-    authController.allowGroup('PAYROLL'),
+    authController.checkPermissaoModulo('Folha Pagamento'),
     reciboController.createRecibo
   );
 
 router
   .route('/:id')
-  .get(authController.allowGroup('PAYROLL'), reciboController.getRecibo)
+  .get(authController.checkPermissaoModulo('Folha Pagamento'), reciboController.getRecibo)
   .patch(
-    authController.allowGroup('PAYROLL'),
+    authController.checkPermissaoModulo('Folha Pagamento'),
     reciboController.updateRecibo
   )
   .delete(
-    authController.allowGroup('PAYROLL'),
+    authController.checkPermissaoModulo('Folha Pagamento'),
     reciboController.deleteRecibo
   );
 

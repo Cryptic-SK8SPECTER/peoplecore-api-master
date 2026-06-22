@@ -17,10 +17,21 @@ const perfilSchema = new mongoose.Schema({
     type: String,
     trim: true,
     maxlength: [200, 'Descrição não pode exceder 200 caracteres']
+  },
+  codigo: {
+    type: String,
+    trim: true,
+    lowercase: true,
+    maxlength: [30, 'Código não pode exceder 30 caracteres']
+  },
+  padrao: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
 });
 
+perfilSchema.index({ empresa_id: 1, codigo: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('Perfil', perfilSchema);

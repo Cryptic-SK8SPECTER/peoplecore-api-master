@@ -8,12 +8,12 @@ const router = express.Router();
 router.use(authController.protect);
 
 // Rotas de consulta
-router.get('/pendentes', authController.allowGroup('PAYROLL'), bonusController.filterByEmpresa, bonusController.getPendentes);
-router.get('/funcionario/:funcionarioId', authController.allowGroup('PAYROLL'), bonusController.getByFuncionario);
-router.get('/tipo/:tipo', authController.allowGroup('PAYROLL'), bonusController.getByTipo);
+router.get('/pendentes', authController.checkPermissaoModulo('Folha Pagamento'), bonusController.filterByEmpresa, bonusController.getPendentes);
+router.get('/funcionario/:funcionarioId', authController.checkPermissaoModulo('Folha Pagamento'), bonusController.getByFuncionario);
+router.get('/tipo/:tipo', authController.checkPermissaoModulo('Folha Pagamento'), bonusController.getByTipo);
 
 // Rotas restritas a payroll (admin/financeiro)
-router.use(authController.allowGroup('PAYROLL'));
+router.use(authController.checkPermissaoModulo('Folha Pagamento'));
 
 router.get('/estatisticas', bonusController.getEstatisticas);
 
