@@ -13,18 +13,18 @@ router.get('/verificar', termosAceitacaoController.verificarAceitacao);
 router.get('/minhas', termosAceitacaoController.minhasAceitacoes);
 
 // Rotas administrativas
-router.get('/estatisticas', authController.restrictTo('admin', 'rh'), termosAceitacaoController.getEstatisticas);
-router.get('/termos/:termosId', authController.restrictTo('admin', 'rh'), termosAceitacaoController.getByTermos);
-router.get('/usuario/:usuarioId', authController.restrictTo('admin', 'rh'), termosAceitacaoController.getByUsuario);
+router.get('/estatisticas', authController.checkPermissaoQualquer(['Configurações','ver'],['Funcionários','ver']), termosAceitacaoController.getEstatisticas);
+router.get('/termos/:termosId', authController.checkPermissaoQualquer(['Configurações','ver'],['Funcionários','ver']), termosAceitacaoController.getByTermos);
+router.get('/usuario/:usuarioId', authController.checkPermissaoQualquer(['Configurações','ver'],['Funcionários','ver']), termosAceitacaoController.getByUsuario);
 
 // CRUD padrão (admin apenas)
 router
   .route('/')
-  .get(authController.restrictTo('admin', 'rh'), termosAceitacaoController.filterByEmpresa, termosAceitacaoController.getAllTermosAceitacao);
+  .get(authController.checkPermissaoQualquer(['Configurações','ver'],['Funcionários','ver']), termosAceitacaoController.filterByEmpresa, termosAceitacaoController.getAllTermosAceitacao);
 
 router
   .route('/:id')
-  .get(authController.restrictTo('admin', 'rh'), termosAceitacaoController.getTermosAceitacao)
-  .delete(authController.restrictTo('admin'), termosAceitacaoController.deleteTermosAceitacao);
+  .get(authController.checkPermissaoQualquer(['Configurações','ver'],['Funcionários','ver']), termosAceitacaoController.getTermosAceitacao)
+  .delete(authController.checkPermissaoModulo('Configurações'), termosAceitacaoController.deleteTermosAceitacao);
 
 module.exports = router;

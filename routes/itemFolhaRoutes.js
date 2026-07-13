@@ -12,27 +12,31 @@ router.get('/folha/:folhaId', itemFolhaController.getByFolha);
 router.get('/folha/:folhaId/estatisticas', itemFolhaController.getEstatisticasByFolha);
 router.get('/funcionario/:funcionarioId', itemFolhaController.getByFuncionario);
 router.get('/:id/recibo', itemFolhaController.getRecibo);
-router.patch('/:id/status', authController.allowGroup('PAYROLL'), itemFolhaController.alterarStatus);
+router.patch('/:id/status', authController.checkPermissaoModulo('Folha Pagamento'), itemFolhaController.alterarStatus);
 
 // CRUD padrão
 router
   .route('/')
-  .get(authController.allowGroup('PAYROLL'), itemFolhaController.filterByEmpresa, itemFolhaController.getAllItensFolha)
+  .get(authController.checkPermissaoModulo('Folha Pagamento'), itemFolhaController.filterByEmpresa, itemFolhaController.getAllItensFolha)
   .post(
+<<<<<<< HEAD
     authController.allowGroup('PAYROLL'),
     itemFolhaController.verificarDuplicidadeItem,
+=======
+    authController.checkPermissaoModulo('Folha Pagamento'),
+>>>>>>> features/nurdine
     itemFolhaController.createItemFolha
   );
 
 router
   .route('/:id')
-  .get(authController.allowGroup('PAYROLL'), itemFolhaController.getItemFolha)
+  .get(authController.checkPermissaoModulo('Folha Pagamento'), itemFolhaController.getItemFolha)
   .patch(
-    authController.allowGroup('PAYROLL'),
+    authController.checkPermissaoModulo('Folha Pagamento'),
     itemFolhaController.updateItemFolha
   )
   .delete(
-    authController.allowGroup('PAYROLL'),
+    authController.checkPermissaoModulo('Folha Pagamento'),
     itemFolhaController.deleteItemFolha
   );
 

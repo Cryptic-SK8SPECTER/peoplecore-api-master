@@ -11,7 +11,7 @@ router.use(authController.protect);
 router.get('/ativos', tipoLicencaController.getAtivos);
 
 // Rotas restritas à gestão de pessoas
-router.use(authController.allowGroup('PEOPLE_MANAGEMENT'));
+router.use(authController.checkPermissaoModulo('Férias'));
 
 router
   .route('/')

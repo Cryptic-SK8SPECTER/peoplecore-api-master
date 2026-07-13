@@ -5,7 +5,7 @@ const authController = require('./../controllers/authController');
 const router = express.Router();
 
 router.use(authController.protect);
-router.use(authController.allowGroup('LEADERSHIP'));
+router.use(authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']));
 
 router
   .route('/')

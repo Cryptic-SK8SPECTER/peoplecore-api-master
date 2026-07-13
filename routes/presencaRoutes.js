@@ -16,12 +16,12 @@ router.get('/diario', presencaController.getDiario);
 router.get('/relatorio-mensal', presencaController.getRelatorioMensal);
 router.get(
   '/elegibilidade/:funcionarioId',
-  authController.allowRoles('super-admin', 'admin', 'rh', 'gestor'),
+  authController.checkPermissaoQualquer(['Presenças','ver'],['Funcionários','ver']),
   presencaController.getElegibilidade
 );
 router.get(
   '/estatisticas',
-  authController.allowGroup('LEADERSHIP'),
+  authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']),
   presencaController.getEstatisticas
 );
 router.get('/funcionario/:funcionarioId', presencaController.getByFuncionario);
@@ -31,7 +31,7 @@ router
   .route('/')
   .get(presencaController.filterByEmpresa, presencaController.getAllPresencas)
   .post(
-    authController.allowGroup('PEOPLE_MANAGEMENT'),
+    authController.checkPermissaoModulo('Presenças'),
     presencaController.createPresenca
   );
 
@@ -39,11 +39,11 @@ router
   .route('/:id')
   .get(presencaController.getPresenca)
   .patch(
-    authController.allowGroup('PEOPLE_MANAGEMENT'),
+    authController.checkPermissaoModulo('Presenças'),
     presencaController.updatePresenca
   )
   .delete(
-    authController.allowGroup('PEOPLE_MANAGEMENT'),
+    authController.checkPermissaoModulo('Presenças'),
     presencaController.deletePresenca
   );
 

@@ -13,7 +13,7 @@ router.get('/com-funcionarios', departamentoController.getComFuncionarios);
 router.get('/verificar-duplicado', departamentoController.verificarDuplicado);
 
 // Gestão de departamentos — alinhado ao frontend (admin + rh)
-router.use(authController.allowGroup('PEOPLE_MANAGEMENT'));
+router.use(authController.checkPermissaoModulo('Departamentos'));
 
 router
   .route('/')

@@ -11,15 +11,15 @@ router.use(authController.protect);
 router.get('/atual', saldoFeriasController.getSaldoAtual);
 router.get('/estatisticas', saldoFeriasController.getEstatisticas);
 router.get('/funcionario/:funcionarioId', saldoFeriasController.getByFuncionario);
-router.post('/inicializar', authController.allowGroup('PEOPLE_MANAGEMENT'), saldoFeriasController.inicializarAno);
-router.patch('/:id/dias-gozados', authController.allowGroup('PEOPLE_MANAGEMENT'), saldoFeriasController.atualizarDiasGozados);
+router.post('/inicializar', authController.checkPermissaoModulo('Férias'), saldoFeriasController.inicializarAno);
+router.patch('/:id/dias-gozados', authController.checkPermissaoModulo('Férias'), saldoFeriasController.atualizarDiasGozados);
 
 // CRUD padrão
 router
   .route('/')
   .get(saldoFeriasController.filterByEmpresa, saldoFeriasController.getAllSaldoFerias)
   .post(
-    authController.allowGroup('PEOPLE_MANAGEMENT'),
+    authController.checkPermissaoModulo('Férias'),
     saldoFeriasController.createSaldoFerias
   );
 
@@ -27,11 +27,11 @@ router
   .route('/:id')
   .get(saldoFeriasController.getSaldoFerias)
   .patch(
-    authController.allowGroup('PEOPLE_MANAGEMENT'),
+    authController.checkPermissaoModulo('Férias'),
     saldoFeriasController.updateSaldoFerias
   )
   .delete(
-    authController.allowGroup('PEOPLE_MANAGEMENT'),
+    authController.checkPermissaoModulo('Férias'),
     saldoFeriasController.deleteSaldoFerias
   );
 

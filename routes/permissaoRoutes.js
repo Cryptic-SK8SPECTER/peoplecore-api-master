@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Proteger todas as rotas e restringir a admin
 router.use(authController.protect);
-router.use(authController.restrictTo('admin'));
+router.use(authController.checkPermissaoModulo('Configurações'));
 
 // Rotas específicas
 router.get('/matriz', permissaoController.getMatrizPermissoes);

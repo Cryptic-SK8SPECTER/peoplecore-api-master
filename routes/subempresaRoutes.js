@@ -5,12 +5,12 @@ const authController = require('./../controllers/authController');
 const router = express.Router();
 
 router.use(authController.protect);
-router.use(authController.restrictTo('admin', 'super-admin'));
+router.use(authController.checkPermissaoQualquer(['Configurações','ver'],['Configurações','editar']));
 
 router.get('/minhas', subempresaController.getMinhasSubempresas);
 router.post(
   '/sync-expiracao',
-  authController.restrictTo('super-admin'),
+  authController.onlySuperAdmin,
   subempresaController.syncExpiracao,
 );
 

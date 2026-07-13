@@ -13,28 +13,28 @@ router.get('/estatisticas', descontoController.getEstatisticas);
 router.get('/mes/:mes', descontoController.getByMes);
 router.get('/tipo/:tipo', descontoController.getByTipo);
 router.get('/funcionario/:funcionarioId', descontoController.getByFuncionario);
-router.post('/recorrentes', authController.allowGroup('PAYROLL'), descontoController.aplicarRecorrentes);
-router.patch('/:id/status', authController.allowGroup('PAYROLL'), descontoController.alterarStatus);
+router.post('/recorrentes', authController.checkPermissaoModulo('Folha Pagamento'), descontoController.aplicarRecorrentes);
+router.patch('/:id/status', authController.checkPermissaoModulo('Folha Pagamento'), descontoController.alterarStatus);
 
 // CRUD padrão
 router
   .route('/')
-  .get(authController.allowGroup('PAYROLL'), descontoController.filterByEmpresa, descontoController.getAllDescontos)
+  .get(authController.checkPermissaoModulo('Folha Pagamento'), descontoController.filterByEmpresa, descontoController.getAllDescontos)
   .post(
-    authController.allowGroup('PAYROLL'),
+    authController.checkPermissaoModulo('Folha Pagamento'),
     descontoController.setEmpresaId,
     descontoController.createDesconto
   );
 
 router
   .route('/:id')
-  .get(authController.allowGroup('PAYROLL'), descontoController.getDesconto)
+  .get(authController.checkPermissaoModulo('Folha Pagamento'), descontoController.getDesconto)
   .patch(
-    authController.allowGroup('PAYROLL'),
+    authController.checkPermissaoModulo('Folha Pagamento'),
     descontoController.updateDesconto
   )
   .delete(
-    authController.allowGroup('PAYROLL'),
+    authController.checkPermissaoModulo('Folha Pagamento'),
     descontoController.deleteDesconto
   );
 

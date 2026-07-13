@@ -132,7 +132,17 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
 // CRUD padrão via factory (uso administrativo global)
 exports.getAllEmpresas = factory.getAll(Empresa);
 exports.getEmpresa = factory.getOne(Empresa);
-exports.createEmpresa = factory.createOne(Empresa);
+exports.createEmpresa = catchAsync(async (req, res, next) => {
+  const { criarPerfisPadraoEmpresa } = require('./../utils/perfilPermissoes');
+
+  const empresa = await Empresa.create(req.body);
+  await criarPerfisPadraoEmpresa(empresa._id);
+
+  res.status(201).json({
+    status: 'success',
+    data: { data: empresa },
+  });
+});
 exports.updateEmpresa = factory.updateOne(Empresa);
 
 // Deletar com validação de referências

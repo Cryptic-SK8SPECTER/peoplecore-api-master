@@ -11,14 +11,14 @@ router.use(authController.protect);
 router.get('/estatisticas', candidatoController.getEstatisticas);
 router.get('/status/:status', candidatoController.getByStatus);
 router.get('/vaga/:vagaId', candidatoController.getByVaga);
-router.patch('/:id/status', authController.allowGroup('PEOPLE_MANAGEMENT'), candidatoController.alterarStatus);
+router.patch('/:id/status', authController.checkPermissaoModulo('Recrutamento'), candidatoController.alterarStatus);
 
 // CRUD padrão
 router
   .route('/')
   .get(candidatoController.filterByEmpresa, candidatoController.getAllCandidatos)
   .post(
-    authController.allowGroup('PEOPLE_MANAGEMENT'),
+    authController.checkPermissaoModulo('Recrutamento'),
     candidatoController.verificarVaga,
     candidatoController.createCandidato
   );
@@ -27,11 +27,11 @@ router
   .route('/:id')
   .get(candidatoController.getCandidato)
   .patch(
-    authController.allowGroup('PEOPLE_MANAGEMENT'),
+    authController.checkPermissaoModulo('Recrutamento'),
     candidatoController.updateCandidato
   )
   .delete(
-    authController.allowGroup('PEOPLE_MANAGEMENT'),
+    authController.checkPermissaoModulo('Recrutamento'),
     candidatoController.deleteCandidato
   );
 
