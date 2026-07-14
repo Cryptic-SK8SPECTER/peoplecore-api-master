@@ -201,7 +201,7 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
     return next(new AppError('Folha de pagamento não encontrada', 404));
   }
 
-  if (folha.status !== 'Rascunho') {
+  if (folha.status !== 'Rascunho' && folha.status !== 'Processado') {
     return next(new AppError(`Não é possível processar uma folha com status "${folha.status}"`, 400));
   }
 
@@ -257,11 +257,21 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
         const diasCalculoSalario = Math.max(0, proRataAudit.diasElegiveis - ausenciaDias);
         const diasInss = proRataAudit.diasElegiveis;
 
-        // Benefícios
-        const atribuicoesBeneficios = await BeneficioFuncionario.find({
+        // Benefícios (ficam desativados quando o funcionário se ausenta - possui falta no período ou status de férias/licença/suspenso)
+        const temFalta = await Falta.exists({
           funcionario_id: func._id,
-          status: 'Ativo',
-        }).populate('beneficio_id', 'nome tipo frequencia status');
+          data: { $gte: periodStart, $lte: periodEnd }
+        });
+        const statusAusente = ['férias', 'licença', 'suspenso'].includes(String(func.status).toLowerCase());
+        const seAusentou = temFalta || statusAusente;
+
+        let atribuicoesBeneficios = [];
+        if (!seAusentou) {
+          atribuicoesBeneficios = await BeneficioFuncionario.find({
+            funcionario_id: func._id,
+            status: 'Ativo',
+          }).populate('beneficio_id', 'nome tipo frequencia status');
+        }
 
         let beneficioTransporteValor = 0;
         let beneficioAlimentacaoValor = 0;

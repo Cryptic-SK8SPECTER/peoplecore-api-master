@@ -24,6 +24,14 @@ const faltaSchema = new mongoose.Schema({
     type: String,
     trim: true,
     maxlength: [500, 'Motivo não pode exceder 500 caracteres']
+  },
+  documentoUrl: {
+    type: String,
+    trim: true
+  },
+  statusJustificacao: {
+    type: String,
+    enum: ['Pendente', 'Aceite', 'Rejeitada']
   }
 }, {
   timestamps: true

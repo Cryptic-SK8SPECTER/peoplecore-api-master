@@ -1,5 +1,6 @@
 const Presenca = require('./../models/presencaModel');
 const Funcionario = require('./../models/funcionarioModel');
+const mongoose = require('mongoose');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
@@ -10,6 +11,15 @@ const {
 
 // Middleware: filtra por empresa do usuário
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
+  if (req.user.role === 'funcionario' || !['super-admin', 'admin', 'rh', 'gestor'].includes(req.user.role)) {
+    if (req.user.funcionario_id) {
+      req.query.funcionario_id = req.user.funcionario_id;
+    } else {
+      req.query.funcionario_id = new mongoose.Types.ObjectId();
+    }
+    return next();
+  }
+
   const funcionarios = await Funcionario.find({
     empresa_id: req.user.empresa_id,
   }).select('_id');
@@ -193,6 +203,13 @@ exports.getByFuncionario = catchAsync(async (req, res, next) => {
     return next(new AppError('Funcionário não encontrado', 404));
   }
 
+  // Se for funcionário, só pode ver as próprias presenças
+  if (req.user.role === 'funcionario' || !['super-admin', 'admin', 'rh', 'gestor'].includes(req.user.role)) {
+    if (!req.user.funcionario_id || req.user.funcionario_id.toString() !== req.params.funcionarioId) {
+      return next(new AppError('Não tem permissão para ver presenças de outro funcionário', 403));
+    }
+  }
+
   const presencas = await Presenca.find({
     funcionario_id: req.params.funcionarioId,
   }).sort('-data');
@@ -212,12 +229,27 @@ exports.getDiario = catchAsync(async (req, res, next) => {
   }
   data.setHours(0, 0, 0, 0);
 
-  const funcionarios = await Funcionario.find({
-    empresa_id: req.user.empresa_id,
-    status: 'Ativo',
-  })
-    .select('_id nome departamento_id')
-    .populate('departamento_id', 'nome');
+  let funcionarios;
+  if (req.user.role === 'funcionario' || !['super-admin', 'admin', 'rh', 'gestor'].includes(req.user.role)) {
+    if (req.user.funcionario_id) {
+      funcionarios = await Funcionario.find({
+        _id: req.user.funcionario_id,
+        empresa_id: req.user.empresa_id,
+        status: 'Ativo',
+      })
+        .select('_id nome departamento_id')
+        .populate('departamento_id', 'nome');
+    } else {
+      funcionarios = [];
+    }
+  } else {
+    funcionarios = await Funcionario.find({
+      empresa_id: req.user.empresa_id,
+      status: 'Ativo',
+    })
+      .select('_id nome departamento_id')
+      .populate('departamento_id', 'nome');
+  }
 
   const funcionarioIds = funcionarios.map((f) => f._id);
 
@@ -264,10 +296,19 @@ exports.getRelatorioMensal = catchAsync(async (req, res, next) => {
   const dataInicio = new Date(ano, mes - 1, 1);
   const dataFim = new Date(ano, mes, 0, 23, 59, 59);
 
-  const funcionarios = await Funcionario.find({
-    empresa_id: req.user.empresa_id,
-  }).select('_id');
-  const funcionarioIds = funcionarios.map((f) => f._id);
+  let funcionarioIds;
+  if (req.user.role === 'funcionario' || !['super-admin', 'admin', 'rh', 'gestor'].includes(req.user.role)) {
+    if (req.user.funcionario_id) {
+      funcionarioIds = [new mongoose.Types.ObjectId(req.user.funcionario_id)];
+    } else {
+      funcionarioIds = [];
+    }
+  } else {
+    const funcionarios = await Funcionario.find({
+      empresa_id: req.user.empresa_id,
+    }).select('_id');
+    funcionarioIds = funcionarios.map((f) => f._id);
+  }
 
   const relatorio = await Presenca.aggregate([
     {
@@ -329,10 +370,19 @@ exports.getRelatorioMensal = catchAsync(async (req, res, next) => {
 
 // Estatísticas gerais
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({
-    empresa_id: req.user.empresa_id,
-  }).select('_id');
-  const funcionarioIds = funcionarios.map((f) => f._id);
+  let funcionarioIds;
+  if (req.user.role === 'funcionario' || !['super-admin', 'admin', 'rh', 'gestor'].includes(req.user.role)) {
+    if (req.user.funcionario_id) {
+      funcionarioIds = [new mongoose.Types.ObjectId(req.user.funcionario_id)];
+    } else {
+      funcionarioIds = [];
+    }
+  } else {
+    const funcionarios = await Funcionario.find({
+      empresa_id: req.user.empresa_id,
+    }).select('_id');
+    funcionarioIds = funcionarios.map((f) => f._id);
+  }
 
   const porStatus = await Presenca.aggregate([
     { $match: { funcionario_id: { $in: funcionarioIds } } },
@@ -354,9 +404,27 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
 
 // CRUD padrão via factory
 exports.getAllPresencas = factory.getAll(Presenca);
-exports.getPresenca = factory.getOne(Presenca, [
-  { path: 'funcionario_id', select: 'nome email' },
-]);
+exports.getPresenca = catchAsync(async (req, res, next) => {
+  let query = Presenca.findById(req.params.id);
+  query = query.populate({ path: 'funcionario_id', select: 'nome email' });
+  const presenca = await query;
+
+  if (!presenca) {
+    return next(new AppError('Registo de presença não encontrado', 404));
+  }
+
+  // Se for funcionário, só pode ver a sua própria presença
+  if (req.user.role === 'funcionario' || !['super-admin', 'admin', 'rh', 'gestor'].includes(req.user.role)) {
+    if (!req.user.funcionario_id || presenca.funcionario_id._id.toString() !== req.user.funcionario_id.toString()) {
+      return next(new AppError('Registo de presença não encontrado', 404));
+    }
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: { data: presenca },
+  });
+});
 exports.createPresenca = factory.createOne(Presenca);
 exports.updatePresenca = factory.updateOne(Presenca);
 exports.deletePresenca = factory.deleteOne(Presenca);

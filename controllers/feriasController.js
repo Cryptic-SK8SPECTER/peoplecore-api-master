@@ -1,6 +1,7 @@
 const Ferias = require('./../models/feriasModel');
 const Funcionario = require('./../models/funcionarioModel');
 const TipoLicenca = require('./../models/tipoLicencaModel');
+const mongoose = require('mongoose');
 const logSistemaController = require('./logSistemaController');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
@@ -8,6 +9,15 @@ const AppError = require('./../utils/appError');
 
 // Middleware: filtra por empresa do usuário
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
+  if (req.user.role === 'funcionario' || !['super-admin', 'admin', 'rh', 'gestor'].includes(req.user.role)) {
+    if (req.user.funcionario_id) {
+      req.query.funcionario_id = req.user.funcionario_id;
+    } else {
+      req.query.funcionario_id = new mongoose.Types.ObjectId();
+    }
+    return next();
+  }
+
   const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   req.funcionarioIds = funcionarios.map(f => f._id);
   req.query.funcionario_id = { $in: req.funcionarioIds };
@@ -25,6 +35,13 @@ exports.getByFuncionario = catchAsync(async (req, res, next) => {
     return next(new AppError('Funcionário não encontrado', 404));
   }
 
+  // Se for funcionário, só pode ver as próprias férias
+  if (req.user.role === 'funcionario' || !['super-admin', 'admin', 'rh', 'gestor'].includes(req.user.role)) {
+    if (!req.user.funcionario_id || req.user.funcionario_id.toString() !== req.params.funcionarioId) {
+      return next(new AppError('Não tem permissão para ver férias de outro funcionário', 403));
+    }
+  }
+
   const ferias = await Ferias.find({ funcionario_id: req.params.funcionarioId })
     .populate('aprovador_id', 'nome')
     .sort('-data_inicio');
@@ -38,8 +55,18 @@ exports.getByFuncionario = catchAsync(async (req, res, next) => {
 
 // Obter pedidos pendentes
 exports.getPendentes = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
-  const funcionarioIds = funcionarios.map(f => f._id);
+  let funcionarioIds;
+
+  if (req.user.role === 'funcionario' || !['super-admin', 'admin', 'rh', 'gestor'].includes(req.user.role)) {
+    if (req.user.funcionario_id) {
+      funcionarioIds = [req.user.funcionario_id];
+    } else {
+      funcionarioIds = [];
+    }
+  } else {
+    const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
+    funcionarioIds = funcionarios.map(f => f._id);
+  }
 
   const pendentes = await Ferias.find({
     funcionario_id: { $in: funcionarioIds },
@@ -182,6 +209,73 @@ exports.verificarSobreposicao = catchAsync(async (req, res, next) => {
   next();
 });
 
+// Validar se existem apenas duas pessoas com o mesmo cargo no mesmo departamento,
+// impedindo que tirem férias no mesmo período.
+exports.verificarRegraMesmoCargo = catchAsync(async (req, res, next) => {
+  let funcionarioId = req.body.funcionario_id;
+  let dataInicio = req.body.data_inicio;
+  let dataFim = req.body.data_fim;
+
+  if (req.params.id) {
+    const currentFerias = await Ferias.findById(req.params.id);
+    if (currentFerias) {
+      if (!funcionarioId) funcionarioId = currentFerias.funcionario_id;
+      if (!dataInicio) dataInicio = currentFerias.data_inicio;
+      if (!dataFim) dataFim = currentFerias.data_fim;
+    }
+  }
+
+  if (!funcionarioId || !dataInicio || !dataFim) return next();
+
+  // Buscar informações do funcionário atual
+  const funcionario = await Funcionario.findById(funcionarioId);
+  if (!funcionario) {
+    return next(new AppError('Funcionário não encontrado', 404));
+  }
+
+  // Buscar outros funcionários ativos com a mesma empresa, departamento e cargo
+  const colegasMesmoCargo = await Funcionario.find({
+    empresa_id: funcionario.empresa_id,
+    departamento_id: funcionario.departamento_id,
+    cargo_id: funcionario.cargo_id,
+    status: { $nin: ['Inativo', 'Demitido', 'Suspenso', 'Falecido'] }
+  });
+
+  // Se existem exatamente duas pessoas com esse cargo no departamento
+  if (colegasMesmoCargo.length === 2) {
+    const outroFuncionario = colegasMesmoCargo.find(
+      f => f._id.toString() !== funcionario._id.toString()
+    );
+
+    if (outroFuncionario) {
+      // Verificar se o outro funcionário tem férias pendentes, aprovadas ou concluídas no mesmo período
+      const queryOutro = {
+        funcionario_id: outroFuncionario._id,
+        status: { $in: ['Pendente', 'Aprovado', 'Concluído'] },
+        data_inicio: { $lte: new Date(dataFim) },
+        data_fim: { $gte: new Date(dataInicio) }
+      };
+
+      if (req.params.id) {
+        queryOutro._id = { $ne: req.params.id };
+      }
+
+      const sobreposicaoOutro = await Ferias.findOne(queryOutro);
+
+      if (sobreposicaoOutro) {
+        return next(
+          new AppError(
+            'Não é permitido que dois colaboradores com o mesmo cargo no mesmo departamento gozem férias no mesmo período',
+            400
+          )
+        );
+      }
+    }
+  }
+
+  next();
+});
+
 // Validar dias máximos do tipo de licença para o(s) ano(s) do pedido
 exports.verificarDiasMaximosPorTipo = catchAsync(async (req, res, next) => {
   const { funcionario_id, tipo_licenca, data_inicio, data_fim } = req.body;
@@ -273,10 +367,24 @@ exports.verificarDiasMaximosPorTipo = catchAsync(async (req, res, next) => {
 
 // Saldo de férias por funcionário
 exports.getSaldo = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({
-    empresa_id: req.user.empresa_id,
-    status: 'Ativo'
-  }).select('_id nome departamento_id data_admissao').populate('departamento_id', 'nome');
+  let funcionarios;
+
+  if (req.user.role === 'funcionario' || !['super-admin', 'admin', 'rh', 'gestor'].includes(req.user.role)) {
+    if (req.user.funcionario_id) {
+      funcionarios = await Funcionario.find({
+        _id: req.user.funcionario_id,
+        empresa_id: req.user.empresa_id,
+        status: 'Ativo'
+      }).select('_id nome departamento_id data_admissao').populate('departamento_id', 'nome');
+    } else {
+      funcionarios = [];
+    }
+  } else {
+    funcionarios = await Funcionario.find({
+      empresa_id: req.user.empresa_id,
+      status: 'Ativo'
+    }).select('_id nome departamento_id data_admissao').populate('departamento_id', 'nome');
+  }
 
   const saldos = await Promise.all(
     funcionarios.map(async (func) => {
@@ -314,8 +422,18 @@ exports.getSaldo = catchAsync(async (req, res, next) => {
 
 // Estatísticas de férias
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
-  const funcionarioIds = funcionarios.map(f => f._id);
+  let funcionarioIds;
+
+  if (req.user.role === 'funcionario' || !['super-admin', 'admin', 'rh', 'gestor'].includes(req.user.role)) {
+    if (req.user.funcionario_id) {
+      funcionarioIds = [new mongoose.Types.ObjectId(req.user.funcionario_id)];
+    } else {
+      funcionarioIds = [];
+    }
+  } else {
+    const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
+    funcionarioIds = funcionarios.map(f => f._id);
+  }
 
   const porStatus = await Ferias.aggregate([
     { $match: { funcionario_id: { $in: funcionarioIds } } },
@@ -354,10 +472,30 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
 
 // CRUD padrão via factory
 exports.getAllFerias = factory.getAll(Ferias);
-exports.getFerias = factory.getOne(Ferias, [
-  { path: 'funcionario_id', select: 'nome email' },
-  { path: 'aprovador_id', select: 'nome' }
-]);
+exports.getFerias = catchAsync(async (req, res, next) => {
+  let query = Ferias.findById(req.params.id);
+  query = query.populate([
+    { path: 'funcionario_id', select: 'nome email' },
+    { path: 'aprovador_id', select: 'nome' }
+  ]);
+  const ferias = await query;
+
+  if (!ferias) {
+    return next(new AppError('Registo de férias não encontrado', 404));
+  }
+
+  // Se for funcionário, só pode ver a sua própria licença/férias
+  if (req.user.role === 'funcionario' || !['super-admin', 'admin', 'rh', 'gestor'].includes(req.user.role)) {
+    if (!req.user.funcionario_id || ferias.funcionario_id._id.toString() !== req.user.funcionario_id.toString()) {
+      return next(new AppError('Registo de férias não encontrado', 404));
+    }
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: { data: ferias }
+  });
+});
 exports.createFerias = catchAsync(async (req, res, next) => {
   const doc = await Ferias.create(req.body);
 

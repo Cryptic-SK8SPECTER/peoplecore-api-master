@@ -1,12 +1,22 @@
 const HoraExtra = require('./../models/horaExtraModel');
 const Funcionario = require('./../models/funcionarioModel');
 const Ferias = require('./../models/feriasModel');
+const mongoose = require('mongoose');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 
 // Middleware: filtra por empresa do usuário
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
+  if (req.user.role === 'funcionario' || !['super-admin', 'admin', 'rh', 'gestor'].includes(req.user.role)) {
+    if (req.user.funcionario_id) {
+      req.query.funcionario_id = req.user.funcionario_id;
+    } else {
+      req.query.funcionario_id = new mongoose.Types.ObjectId();
+    }
+    return next();
+  }
+
   const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
   req.funcionarioIds = funcionarios.map(f => f._id);
   req.query.funcionario_id = { $in: req.funcionarioIds };
@@ -45,6 +55,13 @@ exports.getByFuncionario = catchAsync(async (req, res, next) => {
     return next(new AppError('Funcionário não encontrado', 404));
   }
 
+  // Se for funcionário, só pode ver as próprias horas extras
+  if (req.user.role === 'funcionario' || !['super-admin', 'admin', 'rh', 'gestor'].includes(req.user.role)) {
+    if (!req.user.funcionario_id || req.user.funcionario_id.toString() !== req.params.funcionarioId) {
+      return next(new AppError('Não tem permissão para ver horas extras de outro funcionário', 403));
+    }
+  }
+
   const horasExtras = await HoraExtra.find({ funcionario_id: req.params.funcionarioId })
     .populate('aprovado_por', 'nome')
     .sort('-data');
@@ -58,8 +75,18 @@ exports.getByFuncionario = catchAsync(async (req, res, next) => {
 
 // Obter pendentes
 exports.getPendentes = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
-  const funcionarioIds = funcionarios.map(f => f._id);
+  let funcionarioIds;
+
+  if (req.user.role === 'funcionario' || !['super-admin', 'admin', 'rh', 'gestor'].includes(req.user.role)) {
+    if (req.user.funcionario_id) {
+      funcionarioIds = [req.user.funcionario_id];
+    } else {
+      funcionarioIds = [];
+    }
+  } else {
+    const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
+    funcionarioIds = funcionarios.map(f => f._id);
+  }
 
   const pendentes = await HoraExtra.find({
     funcionario_id: { $in: funcionarioIds },
@@ -128,8 +155,18 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
 
 // Estatísticas
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
-  const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
-  const funcionarioIds = funcionarios.map(f => f._id);
+  let funcionarioIds;
+
+  if (req.user.role === 'funcionario' || !['super-admin', 'admin', 'rh', 'gestor'].includes(req.user.role)) {
+    if (req.user.funcionario_id) {
+      funcionarioIds = [new mongoose.Types.ObjectId(req.user.funcionario_id)];
+    } else {
+      funcionarioIds = [];
+    }
+  } else {
+    const funcionarios = await Funcionario.find({ empresa_id: req.user.empresa_id }).select('_id');
+    funcionarioIds = funcionarios.map(f => f._id);
+  }
 
   const porStatus = await HoraExtra.aggregate([
     { $match: { funcionario_id: { $in: funcionarioIds } } },
@@ -195,12 +232,31 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   });
 });
 
-// CRUD padrão via factory
 exports.getAllHorasExtras = factory.getAll(HoraExtra);
-exports.getHoraExtra = factory.getOne(HoraExtra, [
-  { path: 'funcionario_id', select: 'nome email' },
-  { path: 'aprovado_por', select: 'nome' }
-]);
+exports.getHoraExtra = catchAsync(async (req, res, next) => {
+  let query = HoraExtra.findById(req.params.id);
+  query = query.populate([
+    { path: 'funcionario_id', select: 'nome email' },
+    { path: 'aprovado_por', select: 'nome' }
+  ]);
+  const horaExtra = await query;
+
+  if (!horaExtra) {
+    return next(new AppError('Registo de hora extra não encontrado', 404));
+  }
+
+  // Se for funcionário, só pode ver o seu próprio registo
+  if (req.user.role === 'funcionario' || !['super-admin', 'admin', 'rh', 'gestor'].includes(req.user.role)) {
+    if (!req.user.funcionario_id || horaExtra.funcionario_id._id.toString() !== req.user.funcionario_id.toString()) {
+      return next(new AppError('Registo de hora extra não encontrado', 404));
+    }
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: { data: horaExtra }
+  });
+});
 exports.createHoraExtra = factory.createOne(HoraExtra);
 exports.updateHoraExtra = factory.updateOne(HoraExtra);
 exports.deleteHoraExtra = factory.deleteOne(HoraExtra);

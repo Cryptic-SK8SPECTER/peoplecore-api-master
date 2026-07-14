@@ -22,6 +22,7 @@ router
   .post(
     feriasController.verificarSobreposicao,
     feriasController.verificarDiasMaximosPorTipo,
+    feriasController.verificarRegraMesmoCargo,
     feriasController.createFerias
   );
 
@@ -31,6 +32,7 @@ router
   .patch(
     authController.checkPermissaoModulo('Férias'),
     feriasController.verificarSobreposicao,
+    feriasController.verificarRegraMesmoCargo,
     feriasController.updateFerias
   )
   .delete(

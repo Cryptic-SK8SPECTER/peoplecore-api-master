@@ -19,12 +19,8 @@ router
   .route('/')
   .get(authController.checkPermissaoModulo('Folha Pagamento'), itemFolhaController.filterByEmpresa, itemFolhaController.getAllItensFolha)
   .post(
-<<<<<<< HEAD
-    authController.allowGroup('PAYROLL'),
-    itemFolhaController.verificarDuplicidadeItem,
-=======
     authController.checkPermissaoModulo('Folha Pagamento'),
->>>>>>> features/nurdine
+    itemFolhaController.verificarDuplicidadeItem,
     itemFolhaController.createItemFolha
   );
 

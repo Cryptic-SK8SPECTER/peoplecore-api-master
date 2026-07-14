@@ -98,11 +98,6 @@ exports.gerarRecibos = catchAsync(async (req, res, next) => {
         ],
       });
 
-      if (existe) {
-        existentes++;
-        continue;
-      }
-
       const [cargo, departamento] = await Promise.all([
         Cargo.findById(funcionario.cargo_id).select('nome titulo nivel'),
         Departamento.findById(funcionario.departamento_id).select('nome'),
@@ -118,8 +113,14 @@ exports.gerarRecibos = catchAsync(async (req, res, next) => {
         ano: anoNum,
       });
 
-      await Recibo.create(payload);
-      criados++;
+      if (existe) {
+        Object.assign(existe, payload);
+        await existe.save();
+        existentes++;
+      } else {
+        await Recibo.create(payload);
+        criados++;
+      }
     } catch (err) {
       erros.push({
         item_folha_id: item._id,
