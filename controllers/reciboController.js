@@ -111,6 +111,8 @@ exports.gerarRecibos = catchAsync(async (req, res, next) => {
         departamento,
         mes,
         ano: anoNum,
+        subempresaId: req.body.subempresa_id,
+        baseUrl: `${req.protocol}://${req.get('host')}`,
       });
 
       if (existe) {

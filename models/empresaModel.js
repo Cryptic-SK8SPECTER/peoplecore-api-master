@@ -134,7 +134,57 @@ const empresaSchema = new mongoose.Schema({
     type: String,
     default: '17:00',
     match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'Formato de hora inválido (HH:mm)']
-  }
+  },
+  // ─── Relação Nominal (MITESS) ───────────────────────────────
+  localidade: { type: String, trim: true },
+  distrito: { type: String, trim: true },
+  caixa_postal: { type: String, trim: true },
+  codigo_postal: { type: String, trim: true },
+  fax: { type: String, trim: true },
+  forma_juridica: { type: String, trim: true },
+  orgao_tutela: { type: String, trim: true },
+  actividade_principal: { type: String, trim: true },
+  inss_empresa: { type: String, trim: true },
+  capital_social: { type: Number, default: null, min: 0 },
+  capital_privado_nacional_pct: { type: Number, default: null, min: 0, max: 100 },
+  capital_publico_pct: { type: Number, default: null, min: 0, max: 100 },
+  capital_estrangeiro_pct: { type: Number, default: null, min: 0, max: 100 },
+  volume_vendas: { type: Number, default: null, min: 0 },
+  fundo_salarios: { type: Number, default: null, min: 0 },
+  numero_folha_nominal: { type: String, trim: true },
+  // ─── Código de funcionário ──────────────────────────────────
+  codigo_funcionario: {
+    modo: {
+      type: String,
+      enum: ['automatico', 'manual'],
+      default: 'automatico',
+    },
+    prefixo: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    proximo_numero: {
+      type: Number,
+      default: 1,
+      min: [1, 'Número sequencial mínimo é 1'],
+    },
+    digitos: {
+      type: Number,
+      default: 4,
+      min: [1, 'Mínimo 1 dígito'],
+      max: [10, 'Máximo 10 dígitos'],
+    },
+    separador: {
+      type: String,
+      default: '-',
+      maxlength: [3, 'Separador máximo 3 caracteres'],
+    },
+    incluir_ano: {
+      type: Boolean,
+      default: true,
+    },
+  },
 }, {
   timestamps: {
     createdAt: 'created_at',

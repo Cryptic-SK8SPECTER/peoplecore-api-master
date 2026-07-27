@@ -4,6 +4,27 @@ const Funcionario = require('./../models/funcionarioModel');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
+const ExcelJS = require('exceljs');
+const multer = require('multer');
+const {
+  buildBeneficioImportWorkbook,
+  importBeneficiosFromWorkbook,
+} = require('./../utils/importExcel');
+
+const uploadImportExcel = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ok =
+      file.mimetype ===
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+      file.originalname?.toLowerCase().endsWith('.xlsx');
+    if (ok) return cb(null, true);
+    return cb(new AppError('Apenas ficheiros .xlsx são permitidos', 400), false);
+  },
+});
+
+exports.uploadBeneficioImportExcel = uploadImportExcel.single('ficheiro');
 
 // Middleware: filtra por empresa (via funcionário)
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
@@ -163,6 +184,154 @@ exports.atribuirEmMassa = catchAsync(async (req, res, next) => {
       ignorados,
       total: funcionarios.length
     }
+  });
+});
+
+exports.downloadBeneficioImportTemplate = catchAsync(async (req, res) => {
+  const workbook = await buildBeneficioImportWorkbook(req.user.empresa_id);
+  const buffer = await workbook.xlsx.writeBuffer();
+
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  );
+  res.setHeader(
+    'Content-Disposition',
+    'attachment; filename="modelo-importacao-beneficios.xlsx"',
+  );
+  res.send(Buffer.from(buffer));
+});
+
+exports.importBeneficiosExcel = catchAsync(async (req, res, next) => {
+  if (!req.file?.buffer) {
+    return next(new AppError('Ficheiro Excel é obrigatório (campo: ficheiro)', 400));
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(req.file.buffer);
+
+  const resultado = await importBeneficiosFromWorkbook(workbook, {
+    empresaId: req.user.empresa_id,
+  });
+
+  res.status(200).json({
+    status: 'success',
+    data: resultado,
+  });
+});
+
+exports.atualizarAtribuicoesEmMassa = catchAsync(async (req, res, next) => {
+  const { atribuicoes } = req.body;
+
+  if (!Array.isArray(atribuicoes) || atribuicoes.length === 0) {
+    return next(new AppError('Lista de atribuições é obrigatória', 400));
+  }
+
+  let actualizados = 0;
+  let ignorados = 0;
+  const erros = [];
+
+  for (let i = 0; i < atribuicoes.length; i += 1) {
+    const item = atribuicoes[i];
+    try {
+      let funcionario = null;
+      let beneficio = null;
+
+      if (item.funcionario_id) {
+        funcionario = await Funcionario.findOne({
+          _id: item.funcionario_id,
+          empresa_id: req.user.empresa_id,
+        });
+      } else if (item.codigo_funcionario) {
+        funcionario = await Funcionario.findOne({
+          empresa_id: req.user.empresa_id,
+          codigo_interno: String(item.codigo_funcionario).trim(),
+        });
+      }
+
+      if (item.beneficio_id) {
+        beneficio = await Beneficio.findOne({
+          _id: item.beneficio_id,
+          empresa_id: req.user.empresa_id,
+        });
+      } else if (item.beneficio || item.beneficio_nome) {
+        const nome = item.beneficio || item.beneficio_nome;
+        beneficio = await Beneficio.findOne({
+          empresa_id: req.user.empresa_id,
+          nome: new RegExp(
+            `^${String(nome).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`,
+            'i',
+          ),
+        });
+      }
+
+      if (!funcionario || !beneficio) {
+        throw new Error('Funcionário ou benefício não encontrado');
+      }
+
+      const filter = item.atribuicao_id
+        ? { _id: item.atribuicao_id, funcionario_id: funcionario._id }
+        : {
+            funcionario_id: funcionario._id,
+            beneficio_id: beneficio._id,
+            status: 'Ativo',
+          };
+
+      const atribuicao = await BeneficioFuncionario.findOne(filter);
+      if (!atribuicao) {
+        throw new Error('Atribuição activa não encontrada');
+      }
+
+      let alterou = false;
+
+      if (item.valor !== undefined && item.valor !== null && item.valor !== '') {
+        const valor = Number(item.valor);
+        if (Number.isNaN(valor) || valor < 0) throw new Error('valor inválido');
+        atribuicao.valor = valor;
+        alterou = true;
+      }
+
+      if (item.data_fim !== undefined) {
+        atribuicao.data_fim = item.data_fim ? new Date(item.data_fim) : undefined;
+        alterou = true;
+      }
+
+      if (item.data_inicio !== undefined && item.data_inicio) {
+        atribuicao.data_inicio = new Date(item.data_inicio);
+        alterou = true;
+      }
+
+      if (item.status) {
+        if (!['Ativo', 'Inativo', 'Suspenso'].includes(item.status)) {
+          throw new Error('status inválido');
+        }
+        atribuicao.status = item.status;
+        if (item.status === 'Inativo' && !atribuicao.data_fim) {
+          atribuicao.data_fim = new Date();
+        }
+        alterou = true;
+      }
+
+      if (item.observacoes !== undefined) {
+        atribuicao.observacoes = item.observacoes;
+        alterou = true;
+      }
+
+      if (!alterou) {
+        ignorados += 1;
+        continue;
+      }
+
+      await atribuicao.save();
+      actualizados += 1;
+    } catch (err) {
+      erros.push({ indice: i, mensagem: err.message });
+    }
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: { actualizados, ignorados, total: atribuicoes.length, erros },
   });
 });
 

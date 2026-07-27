@@ -1,9 +1,14 @@
+const dns = require('dns');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cron = require('node-cron');
 
+// Node (c-ares) often fails SRV lookups against some router DNS;
+// nslookup can still work. Prefer public resolvers for MongoDB Atlas.
+dns.setServers(['8.8.8.8', '1.1.1.1']);
+
 process.on('uncaughtException', (err) => {
-  console.log('UNCAUGHT EXCEPTION! 💥 Shutting down...');
+  console.log('UNCAUGHT EXCEPTION! Shutting down...');
   console.log(err.stack);
   process.exit(1);
 });

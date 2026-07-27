@@ -18,6 +18,7 @@ const normalizeDoc = (doc) => ({
   status: doc.status,
   ativo: doc.ativo,
   observacoes: doc.observacoes,
+  logo_url: doc.logo_url,
   created_at: doc.created_at,
   updated_at: doc.updated_at,
 });
@@ -83,6 +84,7 @@ exports.createSubempresa = catchAsync(async (req, res, next) => {
     status: req.body.status,
     ativo: req.body.ativo,
     observacoes: req.body.observacoes,
+    logo_url: req.body.logo_url,
   };
 
   if (req.user.role === 'admin') {
@@ -113,7 +115,7 @@ exports.updateSubempresa = catchAsync(async (req, res, next) => {
     return next(new AppError('Sem permissão para editar esta sub-empresa.', 403));
   }
 
-  const allowed = ['nome', 'codigo', 'nif', 'tipo_empresa', 'provincia', 'cidade', 'endereco', 'responsavel', 'prazo_uso_ate', 'status', 'ativo', 'observacoes'];
+  const allowed = ['nome', 'codigo', 'nif', 'tipo_empresa', 'provincia', 'cidade', 'endereco', 'responsavel', 'prazo_uso_ate', 'status', 'ativo', 'observacoes', 'logo_url'];
   allowed.forEach((key) => {
     if (req.body[key] !== undefined) doc[key] = req.body[key];
   });

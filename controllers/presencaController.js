@@ -8,6 +8,7 @@ const {
   getAttendanceEligibility,
   getAttendanceBlockMessage,
 } = require('./../utils/attendanceEligibility');
+const { resolveReportBranding } = require('./../utils/reportBranding');
 
 // Middleware: filtra por empresa do usuário
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
@@ -362,9 +363,16 @@ exports.getRelatorioMensal = catchAsync(async (req, res, next) => {
     { $sort: { funcionario: 1 } },
   ]);
 
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  const branding = await resolveReportBranding({
+    empresaId: req.user.empresa_id,
+    subempresaId: req.query.subempresa_id,
+    baseUrl,
+  });
+
   res.status(200).json({
     status: 'success',
-    data: { mes: Number(mes), ano: Number(ano), relatorio },
+    data: { mes: Number(mes), ano: Number(ano), relatorio, branding },
   });
 });
 

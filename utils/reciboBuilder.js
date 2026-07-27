@@ -1,4 +1,5 @@
 const Recibo = require('../models/reciboModel');
+const { resolveReportBranding } = require('./reportBranding');
 
 const MESES = {
   Janeiro: 0,
@@ -161,7 +162,17 @@ async function calcularYtd(funcionarioId, mes, ano, totaisMensais, item) {
   };
 }
 
-async function buildReciboPayload({ item, funcionario, empresa, cargo, departamento, mes, ano }) {
+async function buildReciboPayload({
+  item,
+  funcionario,
+  empresa,
+  cargo,
+  departamento,
+  mes,
+  ano,
+  subempresaId,
+  baseUrl,
+}) {
   const rendimentos = buildRendimentos(item);
   const contribuicoes_empresa = buildContribuicoesEmpresa(item);
   const descontos = buildDescontos(item);
@@ -179,6 +190,12 @@ async function buildReciboPayload({ item, funcionario, empresa, cargo, departame
   };
 
   const ytd = await calcularYtd(funcionario._id, mes, ano, totais, item);
+
+  const branding = await resolveReportBranding({
+    empresaId: empresa?._id || funcionario.empresa_id,
+    subempresaId,
+    baseUrl: baseUrl || process.env.SERVER_URL || '',
+  });
 
   const cabecalho = {
     funcionario: {
@@ -200,7 +217,9 @@ async function buildReciboPayload({ item, funcionario, empresa, cargo, departame
       nome: empresa?.nome_comercial || empresa?.nome || '',
       endereco: [empresa?.endereco, empresa?.cidade, empresa?.provincia].filter(Boolean).join(', '),
       nif: empresa?.nif || '',
+      logo_url: branding.logo_url,
     },
+    branding,
   };
 
   return {
@@ -220,6 +239,7 @@ async function buildReciboPayload({ item, funcionario, empresa, cargo, departame
     descontos: total_descontos,
     salario_liquido,
     moeda: empresa?.moeda || 'MZN',
+    branding,
     url_pdf: `/recibos/${funcionario._id}/${ano}-${mes}.pdf`,
   };
 }

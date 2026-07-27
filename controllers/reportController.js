@@ -6,6 +6,18 @@ const Ferias = require('../models/feriasModel');
 const FolhaPagamento = require('../models/folhaPagamentoModel');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
+const {
+  buildRelacaoNominalData,
+  applyRelacaoNominalPersonalizacao,
+  RELACAO_NOMINAL_CAMPOS_EDITAVEIS,
+} = require('../utils/relacaoNominalBuilder');
+const {
+  generateRelacaoNominalPdf,
+} = require('../utils/relacaoNominalPdf');
+const {
+  generateRelacaoNominalExcel,
+} = require('../utils/relacaoNominalExcel');
+const { resolveReportBranding } = require('../utils/reportBranding');
 
 const MESES = [
   'Janeiro',
@@ -117,6 +129,22 @@ async function buildAlerts(empresaId, funcionarioIds) {
   return alerts;
 }
 
+const resolveBrandingFromRequest = async (req) => {
+  const empresaId =
+    resolveEmpresaId(req.user) || req.query.empresa_id || req.body?.empresa_id;
+  const subempresaId = req.query.subempresa_id || req.body?.subempresa_id;
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  return resolveReportBranding({ empresaId, subempresaId, baseUrl });
+};
+
+exports.getReportBranding = catchAsync(async (req, res) => {
+  const branding = await resolveBrandingFromRequest(req);
+  res.status(200).json({
+    status: 'success',
+    data: branding,
+  });
+});
+
 exports.getDashboard = catchAsync(async (req, res) => {
   const empresaId = resolveEmpresaId(req.user);
   const funcionarioIds = await getFuncionarioIds(empresaId);
@@ -222,6 +250,8 @@ exports.getDashboard = catchAsync(async (req, res) => {
         ? `${alerts.length} aviso${alerts.length === 1 ? '' : 's'}`
         : 'Sem alertas';
 
+  const branding = await resolveBrandingFromRequest(req);
+
   const porDepartamento = await Funcionario.aggregate([
     {
       $match: {
@@ -289,6 +319,7 @@ exports.getDashboard = catchAsync(async (req, res) => {
       alerts,
       porDepartamento,
       porContrato,
+      branding,
       generatedAt: new Date().toISOString(),
     },
   });
@@ -296,6 +327,7 @@ exports.getDashboard = catchAsync(async (req, res) => {
 
 exports.getDepartments = catchAsync(async (req, res) => {
   const empresaId = resolveEmpresaId(req.user);
+  const branding = await resolveBrandingFromRequest(req);
   const porDepartamento = await Funcionario.aggregate([
     {
       $match: {
@@ -328,12 +360,13 @@ exports.getDepartments = catchAsync(async (req, res) => {
 
   res.status(200).json({
     status: 'success',
-    data: { porDepartamento },
+    data: { porDepartamento, branding },
   });
 });
 
 exports.getContracts = catchAsync(async (req, res) => {
   const empresaId = resolveEmpresaId(req.user);
+  const branding = await resolveBrandingFromRequest(req);
   const rows = await Funcionario.aggregate([
     {
       $match: {
@@ -356,17 +389,131 @@ exports.getContracts = catchAsync(async (req, res) => {
 
   res.status(200).json({
     status: 'success',
-    data: { contracts, porContrato: contracts },
+    data: { contracts, porContrato: contracts, branding },
   });
 });
 
 exports.getAlerts = catchAsync(async (req, res) => {
   const empresaId = resolveEmpresaId(req.user);
+  const branding = await resolveBrandingFromRequest(req);
   const funcionarioIds = await getFuncionarioIds(empresaId);
   const alerts = await buildAlerts(empresaId, funcionarioIds);
 
   res.status(200).json({
     status: 'success',
-    data: { alerts },
+    data: { alerts, branding },
   });
+});
+
+const resolveRelacaoEmpresaId = (req) => {
+  const fromUser = resolveEmpresaId(req.user);
+  if (fromUser) return fromUser;
+  const empresaId = req.query.empresa_id || req.body?.empresa_id;
+  if (empresaId) return empresaId;
+  throw new AppError('empresa_id é obrigatório', 400);
+};
+
+const buildRelacaoNominalPayload = async (req) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.method === 'GET' ? req.query : req.body;
+  const data = await buildRelacaoNominalData({
+    empresaId,
+    mes: source.mes,
+    ano: source.ano,
+    subUnidadeId: source.sub_unidade_id,
+  });
+  return applyRelacaoNominalPersonalizacao(data, source.personalizacao);
+};
+
+const sendRelacaoNominalFile = (res, buffer, filename, contentType) => {
+  res.set({
+    'Content-Type': contentType,
+    'Content-Disposition': `attachment; filename="${filename}"`,
+    'Content-Length': buffer.length,
+  });
+  res.status(200).send(buffer);
+};
+
+/**
+ * GET /reports/relacao-nominal?mes=&ano=&sub_unidade_id=
+ * Preview JSON da Relação Nominal (campos editáveis antes da exportação).
+ */
+exports.getRelacaoNominal = catchAsync(async (req, res) => {
+  const data = await buildRelacaoNominalPayload(req);
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      ...data,
+      campos_editaveis: RELACAO_NOMINAL_CAMPOS_EDITAVEIS,
+    },
+  });
+});
+
+/**
+ * POST /reports/relacao-nominal/preview
+ * Reaplica personalizações (cabeçalho manual + observações) na pré-visualização.
+ */
+exports.postRelacaoNominalPreview = catchAsync(async (req, res) => {
+  const data = await buildRelacaoNominalPayload(req);
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      ...data,
+      campos_editaveis: RELACAO_NOMINAL_CAMPOS_EDITAVEIS,
+    },
+  });
+});
+
+/**
+ * GET /reports/relacao-nominal/pdf?mes=&ano=&sub_unidade_id=
+ */
+exports.getRelacaoNominalPdf = catchAsync(async (req, res) => {
+  const data = await buildRelacaoNominalPayload(req);
+  const buffer = await generateRelacaoNominalPdf(data);
+  const filename = `relacao-nominal-${data.cabecalho.numero_folha}-${data.cabecalho.mes}-${data.cabecalho.ano}.pdf`;
+  sendRelacaoNominalFile(res, buffer, filename, 'application/pdf');
+});
+
+/**
+ * POST /reports/relacao-nominal/pdf
+ * Exporta PDF com personalizações da pré-visualização.
+ */
+exports.postRelacaoNominalPdf = catchAsync(async (req, res) => {
+  const data = await buildRelacaoNominalPayload(req);
+  const buffer = await generateRelacaoNominalPdf(data);
+  const filename = `relacao-nominal-${data.cabecalho.numero_folha}-${data.cabecalho.mes}-${data.cabecalho.ano}.pdf`;
+  sendRelacaoNominalFile(res, buffer, filename, 'application/pdf');
+});
+
+/**
+ * GET /reports/relacao-nominal/excel?mes=&ano=&sub_unidade_id=
+ */
+exports.getRelacaoNominalExcel = catchAsync(async (req, res) => {
+  const data = await buildRelacaoNominalPayload(req);
+  const buffer = await generateRelacaoNominalExcel(data);
+  const filename = `relacao-nominal-${data.cabecalho.numero_folha}-${data.cabecalho.mes}-${data.cabecalho.ano}.xlsx`;
+  sendRelacaoNominalFile(
+    res,
+    buffer,
+    filename,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  );
+});
+
+/**
+ * POST /reports/relacao-nominal/excel
+ * Exporta Excel com personalizações da pré-visualização.
+ */
+exports.postRelacaoNominalExcel = catchAsync(async (req, res) => {
+  const data = await buildRelacaoNominalPayload(req);
+  const buffer = await generateRelacaoNominalExcel(data);
+  const filename = `relacao-nominal-${data.cabecalho.numero_folha}-${data.cabecalho.mes}-${data.cabecalho.ano}.xlsx`;
+  sendRelacaoNominalFile(
+    res,
+    buffer,
+    filename,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  );
 });

@@ -42,6 +42,13 @@ router.use(authController.checkPermissaoModulo('Funcionários'));
 
 router.get('/estatisticas', funcionarioController.getEstatisticas);
 
+router.get('/import/template', funcionarioController.downloadImportTemplate);
+router.post(
+  '/import/excel',
+  funcionarioController.uploadImportExcel,
+  funcionarioController.importFuncionariosExcel,
+);
+
 router
   .route('/')
   .get(
