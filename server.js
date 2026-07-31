@@ -29,9 +29,8 @@ mongoose
   });
 
 const port = process.env.PORT || 3000;
-const host = process.env.HOST || '0.0.0.0';
-const server = app.listen(port, host, () => {
-  console.log(`App running on http://${host}:${port} ...`);
+const server = app.listen(port, '127.0.0.1', () => {
+  console.log(`App running on ${port} ...`);
 });
 
 const runExpirySync = async () => {
@@ -60,7 +59,9 @@ const runExpirySync = async () => {
     const e = empresasExpiradas.modifiedCount || 0;
     const s = subempresasExpiradas.modifiedCount || 0;
     if (e > 0 || s > 0) {
-      console.log(`[expiry-sync] Empresas expiradas: ${e} | Sub-empresas expiradas: ${s}`);
+      console.log(
+        `[expiry-sync] Empresas expiradas: ${e} | Sub-empresas expiradas: ${s}`,
+      );
     }
   } catch (err) {
     console.error('[expiry-sync] erro ao sincronizar expiração:', err.message);
@@ -85,7 +86,9 @@ cron.schedule('0 18 * * *', async () => {
     const Funcionario = require('./models/funcionarioModel');
     const Presenca = require('./models/presencaModel');
     const Falta = require('./models/faltaModel');
-    const { getAttendanceEligibility } = require('./utils/attendanceEligibility');
+    const {
+      getAttendanceEligibility,
+    } = require('./utils/attendanceEligibility');
 
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
