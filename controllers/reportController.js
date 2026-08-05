@@ -18,6 +18,17 @@ const {
   generateRelacaoNominalExcel,
 } = require('../utils/relacaoNominalExcel');
 const { resolveReportBranding } = require('../utils/reportBranding');
+const {
+  buildInssFolhaRemuneracaoData,
+  applyInssFolhaPersonalizacao,
+  INSS_FOLHA_CAMPOS_EDITAVEIS,
+} = require('../utils/inssFolhaRemuneracaoBuilder');
+const {
+  generateInssFolhaRemuneracaoPdf,
+} = require('../utils/inssFolhaRemuneracaoPdf');
+const {
+  generateInssFolhaRemuneracaoExcel,
+} = require('../utils/inssFolhaRemuneracaoExcel');
 
 const MESES = [
   'Janeiro',
@@ -510,6 +521,87 @@ exports.postRelacaoNominalExcel = catchAsync(async (req, res) => {
   const data = await buildRelacaoNominalPayload(req);
   const buffer = await generateRelacaoNominalExcel(data);
   const filename = `relacao-nominal-${data.cabecalho.numero_folha}-${data.cabecalho.mes}-${data.cabecalho.ano}.xlsx`;
+  sendRelacaoNominalFile(
+    res,
+    buffer,
+    filename,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  );
+});
+
+const buildInssFolhaPayload = async (req) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.method === 'GET' ? req.query : req.body;
+  const data = await buildInssFolhaRemuneracaoData({
+    empresaId,
+    mes: source.mes,
+    ano: source.ano,
+    multaAtraso: source.multa_atraso ?? source.personalizacao?.multa_atraso,
+    guiaContribuicaoNumero:
+      source.guia_contribuicao_numero ??
+      source.personalizacao?.guia_contribuicao_numero,
+  });
+  return applyInssFolhaPersonalizacao(data, source.personalizacao);
+};
+
+/**
+ * GET /reports/inss-folha-remuneracao?mes=&ano=
+ */
+exports.getInssFolhaRemuneracao = catchAsync(async (req, res) => {
+  const data = await buildInssFolhaPayload(req);
+  res.status(200).json({
+    status: 'success',
+    data: {
+      ...data,
+      campos_editaveis: INSS_FOLHA_CAMPOS_EDITAVEIS,
+    },
+  });
+});
+
+/**
+ * POST /reports/inss-folha-remuneracao/preview
+ */
+exports.postInssFolhaRemuneracaoPreview = catchAsync(async (req, res) => {
+  const data = await buildInssFolhaPayload(req);
+  res.status(200).json({
+    status: 'success',
+    data: {
+      ...data,
+      campos_editaveis: INSS_FOLHA_CAMPOS_EDITAVEIS,
+    },
+  });
+});
+
+exports.getInssFolhaRemuneracaoPdf = catchAsync(async (req, res) => {
+  const data = await buildInssFolhaPayload(req);
+  const buffer = await generateInssFolhaRemuneracaoPdf(data);
+  const filename = `inss-folha-remuneracao-${data.cabecalho.mes_numero}-${data.cabecalho.ano}.pdf`;
+  sendRelacaoNominalFile(res, buffer, filename, 'application/pdf');
+});
+
+exports.postInssFolhaRemuneracaoPdf = catchAsync(async (req, res) => {
+  const data = await buildInssFolhaPayload(req);
+  const buffer = await generateInssFolhaRemuneracaoPdf(data);
+  const filename = `inss-folha-remuneracao-${data.cabecalho.mes_numero}-${data.cabecalho.ano}.pdf`;
+  sendRelacaoNominalFile(res, buffer, filename, 'application/pdf');
+});
+
+exports.getInssFolhaRemuneracaoExcel = catchAsync(async (req, res) => {
+  const data = await buildInssFolhaPayload(req);
+  const buffer = await generateInssFolhaRemuneracaoExcel(data);
+  const filename = `inss-folha-remuneracao-${data.cabecalho.mes_numero}-${data.cabecalho.ano}.xlsx`;
+  sendRelacaoNominalFile(
+    res,
+    buffer,
+    filename,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  );
+});
+
+exports.postInssFolhaRemuneracaoExcel = catchAsync(async (req, res) => {
+  const data = await buildInssFolhaPayload(req);
+  const buffer = await generateInssFolhaRemuneracaoExcel(data);
+  const filename = `inss-folha-remuneracao-${data.cabecalho.mes_numero}-${data.cabecalho.ano}.xlsx`;
   sendRelacaoNominalFile(
     res,
     buffer,
