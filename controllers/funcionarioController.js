@@ -1,19 +1,17 @@
 const Funcionario = require('./../models/funcionarioModel');
-const Usuario = require('./../models/usuarioModel');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
-const generateRandomPassword = require('./../utils/passwordGenerator');
-const Email = require('./../utils/email');
-const {
-  validarPerfilEmpresa,
-  garantirPermissoesPerfil,
-  resolverPerfilPadraoEmpresa,
-  temPermissao,
-} = require('./../utils/perfilPermissoes');
+const ExcelJS = require('exceljs');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const { temPermissao } = require('./../utils/perfilPermissoes');
+const { createFuncionarioCompleto } = require('./../utils/funcionarioCreateService');
+const {
+  buildFuncionarioImportWorkbook,
+  importFuncionariosFromWorkbook,
+} = require('./../utils/importExcel');
 
 // ─── Upload de foto do funcionário (public/users) ─────────────
 const usersDir = path.join(__dirname, '..', 'public', 'users');
@@ -103,6 +101,22 @@ const uploadFuncionarioDocumentos = multer({
   storage: funcionarioDocsStorage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
+
+const excelMemoryStorage = multer.memoryStorage();
+const uploadImportExcel = multer({
+  storage: excelMemoryStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ok =
+      file.mimetype ===
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+      file.originalname?.toLowerCase().endsWith('.xlsx');
+    if (ok) return cb(null, true);
+    return cb(new AppError('Apenas ficheiros .xlsx são permitidos', 400), false);
+  },
+});
+
+exports.uploadImportExcel = uploadImportExcel.single('ficheiro');
 
 exports.uploadFuncionarioDocumentos = uploadFuncionarioDocumentos.array('documentos', 10);
 
@@ -339,60 +353,63 @@ exports.getFuncionario = factory.getOne(Funcionario, [
 
 // Criar funcionário e usuário automaticamente com senha aleatória
 exports.createFuncionario = catchAsync(async (req, res, next) => {
-  // Mapear email_pessoal para email se necessário
-  if (req.body.email_pessoal && !req.body.email) {
-    req.body.email = req.body.email_pessoal;
-  }
-
   let { perfil_id } = req.body;
   delete req.body.perfil_id;
 
   const empresaId = req.body.empresa_id || req.user.empresa_id;
 
-  if (!perfil_id) {
-    const perfilPadrao = await resolverPerfilPadraoEmpresa(empresaId, 'funcionario');
-    perfil_id = perfilPadrao._id;
-  }
-
-  await validarPerfilEmpresa(perfil_id, empresaId);
-  await garantirPermissoesPerfil(perfil_id);
-
-  // 1) Criar o funcionário
-  const funcionario = await Funcionario.create(req.body);
-
-  // 2) Gerar senha aleatória
-  const randomPassword = generateRandomPassword();
-
-  // 3) Criar usuário associado ao perfil (herda permissões do perfil)
-  const usuario = await Usuario.create({
-    funcionario_id: funcionario._id,
-    empresa_id: funcionario.empresa_id,
-    nome: funcionario.nome,
-    email: funcionario.email,
-    password: randomPassword,
-    passwordConfirm: randomPassword,
-    role: 'funcionario',
-    perfil_id,
+  const { funcionario } = await createFuncionarioCompleto({
+    data: req.body,
+    empresaId,
+    perfilId: perfil_id,
+    enviarEmail: req.body.enviar_email_boas_vindas !== false,
   });
 
-  // 4) Enviar email com a senha
-  try {
-    const emailObj = new Email(
-      { email: usuario.email, nome: usuario.nome },
-      null,
-    );
-    await emailObj.sendWelcomeWithPassword(randomPassword);
-  } catch (err) {
-    console.error('Erro ao enviar email de boas-vindas:', err);
-    // Não falhar a requisição se o email não for enviado
-  }
-
-  // Responder com o funcionário criado
   res.status(201).json({
     status: 'success',
     data: {
       data: funcionario,
     },
+  });
+});
+
+exports.downloadImportTemplate = catchAsync(async (req, res) => {
+  const workbook = await buildFuncionarioImportWorkbook(req.user.empresa_id, {
+    includeReferences: true,
+  });
+  const buffer = await workbook.xlsx.writeBuffer();
+
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  );
+  res.setHeader(
+    'Content-Disposition',
+    'attachment; filename="modelo-importacao-funcionarios.xlsx"',
+  );
+  res.send(Buffer.from(buffer));
+});
+
+exports.importFuncionariosExcel = catchAsync(async (req, res, next) => {
+  if (!req.file?.buffer) {
+    return next(new AppError('Ficheiro Excel é obrigatório (campo: ficheiro)', 400));
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(req.file.buffer);
+
+  const enviarEmail =
+    req.body.enviar_email_boas_vindas === true ||
+    req.body.enviar_email_boas_vindas === 'true';
+
+  const resultado = await importFuncionariosFromWorkbook(workbook, {
+    empresaId: req.user.empresa_id,
+    enviarEmail,
+  });
+
+  res.status(200).json({
+    status: 'success',
+    data: resultado,
   });
 });
 

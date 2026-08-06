@@ -10,6 +10,14 @@ router.use(authController.protect);
 router.get('/estatisticas', authController.checkPermissaoModulo('Funcionários'), beneficioFuncionarioController.getEstatisticas);
 router.post('/atribuir', authController.checkPermissaoModulo('Funcionários'), beneficioFuncionarioController.verificarRelacoes, beneficioFuncionarioController.atribuirBeneficio);
 router.post('/atribuir-massa', authController.checkPermissaoModulo('Funcionários'), beneficioFuncionarioController.atribuirEmMassa);
+router.patch('/atualizar-massa', authController.checkPermissaoModulo('Funcionários'), beneficioFuncionarioController.atualizarAtribuicoesEmMassa);
+router.get('/import/template', authController.checkPermissaoModulo('Funcionários'), beneficioFuncionarioController.downloadBeneficioImportTemplate);
+router.post(
+  '/import/excel',
+  authController.checkPermissaoModulo('Funcionários'),
+  beneficioFuncionarioController.uploadBeneficioImportExcel,
+  beneficioFuncionarioController.importBeneficiosExcel,
+);
 router.patch('/:id/status', authController.checkPermissaoModulo('Funcionários'), beneficioFuncionarioController.alterarStatus);
 router.get('/funcionario/:funcionarioId', authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']), beneficioFuncionarioController.getByFuncionario);
 router.get('/beneficio/:beneficioId', authController.checkPermissaoModulo('Funcionários'), beneficioFuncionarioController.getByBeneficio);

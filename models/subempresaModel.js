@@ -67,6 +67,10 @@ const subempresaSchema = new mongoose.Schema(
       maxlength: [1000, 'Observações não podem exceder 1000 caracteres'],
       default: '',
     },
+    logo_url: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: {

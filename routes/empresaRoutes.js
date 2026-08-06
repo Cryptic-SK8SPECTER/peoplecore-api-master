@@ -10,11 +10,32 @@ router.use(authController.protect);
 // Rotas para a própria empresa (qualquer usuário autenticado)
 router.get('/minha-empresa', empresaController.getMinhaEmpresa);
 router.get('/estatisticas', empresaController.getEstatisticas);
+router.get(
+  '/minha-empresa/codigo-funcionario',
+  empresaController.getCodigoFuncionarioConfig,
+);
+router.get(
+  '/minha-empresa/codigo-funcionario/proximo',
+  empresaController.getProximoCodigoFuncionario,
+);
 
 router.patch(
   '/minha-empresa',
   authController.checkPermissao('Configurações', 'editar'),
   empresaController.updateMinhaEmpresa,
+);
+
+router.patch(
+  '/minha-empresa/logo',
+  authController.checkPermissao('Configurações', 'editar'),
+  empresaController.uploadEmpresaLogo,
+  empresaController.updateMinhaEmpresaLogo,
+);
+
+router.delete(
+  '/minha-empresa/logo',
+  authController.checkPermissao('Configurações', 'editar'),
+  empresaController.removeMinhaEmpresaLogo,
 );
 
 // CRUD completo (super admin da plataforma)
@@ -23,6 +44,14 @@ router
   .route('/')
   .get(empresaController.getAllEmpresas)
   .post(empresaController.createEmpresa);
+
+router.patch(
+  '/:id/logo',
+  empresaController.uploadEmpresaLogo,
+  empresaController.updateEmpresaLogoById,
+);
+
+router.delete('/:id/logo', empresaController.removeEmpresaLogoById);
 
 router
   .route('/:id')

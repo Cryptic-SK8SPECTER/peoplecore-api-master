@@ -77,6 +77,38 @@ const funcionarioSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    naturalidade: {
+      type: String,
+      trim: true,
+    },
+    passaporte: {
+      type: String,
+      trim: true,
+    },
+    // Campos Relação Nominal (MITESS)
+    profissao: {
+      type: String,
+      trim: true,
+    },
+    categoria_profissional: {
+      type: String,
+      trim: true,
+    },
+    situacao_profissao: {
+      type: String,
+      trim: true,
+    },
+    data_ultima_promocao: {
+      type: Date,
+    },
+    periodo_trabalho_semanal: {
+      type: Number,
+      min: [0, 'Período semanal não pode ser negativo'],
+    },
+    observacoes_relacao_nominal: {
+      type: String,
+      trim: true,
+    },
     // Contato de Emergência (utilizado na UI e exibido no perfil)
     contacto_emergencia: {
       nome: {
@@ -248,5 +280,16 @@ funcionarioSchema.virtual('tempo_casa').get(function () {
 // Ensure virtuals are included in JSON output
 funcionarioSchema.set('toJSON', { virtuals: true });
 funcionarioSchema.set('toObject', { virtuals: true });
+
+funcionarioSchema.index(
+  { empresa_id: 1, codigo_interno: 1 },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: {
+      codigo_interno: { $type: 'string', $ne: '' },
+    },
+  },
+);
 
 module.exports = mongoose.model('Funcionario', funcionarioSchema);
