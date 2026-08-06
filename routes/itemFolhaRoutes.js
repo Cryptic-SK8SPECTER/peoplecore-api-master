@@ -1,5 +1,5 @@
 const express = require('express');
-const itemFolhaController = require('./../controllers/itemFolhaController');
+const itemFolhaController = require('./../controllers/ItemFolhaController');
 const authController = require('./../controllers/authController');
 
 const router = express.Router();
