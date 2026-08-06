@@ -108,10 +108,15 @@ const corsOptions = {
       return callback(null, true);
     }
     const fromEnv = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+      ? process.env.ALLOWED_ORIGINS.split(',')
+          .map((o) => o.trim())
+          .filter(Boolean)
       : [];
     const allowedOrigins = [
-      ...new Set([...(fromEnv.length ? fromEnv : DEFAULT_ORIGINS), ...LOCAL_DEV_ORIGINS]),
+      ...new Set([
+        ...(fromEnv.length ? fromEnv : DEFAULT_ORIGINS),
+        ...LOCAL_DEV_ORIGINS,
+      ]),
     ];
     if (
       allowedOrigins.includes(origin) ||
@@ -203,6 +208,15 @@ const speedLimiter = slowDown({
   },
   skip: (req) => process.env.NODE_ENV === 'development', // Pular em desenvolvimento
   validate: { trustProxy: false },
+});
+
+// Health check (Render / load balancers / UptimeRobot — muitos usam HEAD)
+function healthOk(req, res) {
+  res.status(200).json({ status: 'ok' });
+}
+app.get('/health', healthOk);
+app.head('/health', (req, res) => {
+  res.status(200).end();
 });
 
 app.use('/api', limiter);
