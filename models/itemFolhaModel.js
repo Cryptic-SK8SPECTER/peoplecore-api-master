@@ -1,6 +1,11 @@
 // models/ItemFolha.js
 const mongoose = require('mongoose');
 const {
+  round2,
+  calcINSSTrabalhador,
+  calcINSSEmpregador,
+  calcQuotaSindical,
+  calcIRPS,
   calcSalarioTotal,
   calcSalarioLiquido,
 } = require('../utils/payrollCalculations');
@@ -56,6 +61,16 @@ const itemFolhaSchema = new mongoose.Schema({
     type: Number,
     default: 0,
     min: [0, 'Benefício alimentação não pode ser negativo']
+  },
+  beneficios_incide_inss_valor: {
+    type: Number,
+    default: 0,
+    min: [0, 'Valor de benefícios com incidência de INSS não pode ser negativo']
+  },
+  beneficios_incide_irps_valor: {
+    type: Number,
+    default: 0,
+    min: [0, 'Valor de benefícios com incidência de IRPS não pode ser negativo']
   },
   horas_extras_valor: {
     type: Number,
@@ -199,6 +214,50 @@ itemFolhaSchema.pre('save', function(next) {
   this.beneficio_alimentacao_valor = benAli || legAli;
   this.subsidio_transporte_valor = this.beneficio_transporte_valor;
   this.subsidio_alimentacao_valor = this.beneficio_alimentacao_valor;
+
+  // Recalcular salario_diario
+  if (this.salario_base_integral > 0 && this.dias_periodo > 0) {
+    this.salario_diario = round2(this.salario_base_integral / this.dias_periodo);
+  }
+
+  // Recalcular salario_base (pro-rata) baseado nos dias elegíveis
+  if (this.salario_base_integral > 0 && this.dias_periodo > 0 && this.dias_elegiveis >= 0) {
+    const proRataRatio = Math.max(0, Math.min(1, this.dias_elegiveis / this.dias_periodo));
+    this.percentual_pro_rata = proRataRatio;
+    this.salario_base = round2(this.salario_base_integral * proRataRatio);
+  }
+
+  // Recalcular horas_extras_valor se as horas foram alteradas
+  if (this.isModified('horas_extras_dia_normal') || this.isModified('horas_extras_feriado') || this.isModified('salario_diario')) {
+    const valorHora = (this.salario_diario || 0) / 8;
+    const heNormal = Number(this.horas_extras_dia_normal || 0) * valorHora * 1.5;
+    const heFeriado = Number(this.horas_extras_feriado || 0) * valorHora * 2.0;
+    this.horas_extras_valor = round2(heNormal + heFeriado);
+  }
+
+  // Recalcular salario_noturno se o turno noturno foi alterado
+  if (this.isModified('turno_noturno_dias') || this.isModified('salario_diario')) {
+    this.salario_noturno = round2(Number(this.turno_noturno_dias || 0) * (this.salario_diario || 0) * 0.25);
+  }
+
+  // Recalcular INSS e Quota Sindical com base de incidência parametrizada
+  const baseINSS = (this.salario_base || 0) + (this.beneficios_incide_inss_valor || 0);
+  this.inss_trabalhador = calcINSSTrabalhador(baseINSS);
+  this.inss_empregador = calcINSSEmpregador(baseINSS);
+  this.quota_sindical = calcQuotaSindical(this.salario_base); // Quota sindical incide apenas sobre o salário base
+
+  // Recalcular IRPS com base de incidência de benefícios parametrizada
+  const rendimentoTributavel = (this.salario_base || 0) +
+    (this.beneficios_incide_irps_valor || 0) +
+    (this.horas_extras_valor || 0) +
+    (this.allowance_bonus || 0);
+
+  this.irps = calcIRPS(rendimentoTributavel - this.inss_trabalhador, this.num_dependentes || 0);
+
+  // Recalcular descontos_total
+  this.descontos_total = round2(
+    this.inss_trabalhador + this.irps + this.quota_sindical + (this.adjustment_deduct || 0)
+  );
 
   this.salario_total = calcSalarioTotal({
     salarioProRata: this.salario_base,

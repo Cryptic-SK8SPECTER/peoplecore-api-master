@@ -270,7 +270,7 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
           atribuicoesBeneficios = await BeneficioFuncionario.find({
             funcionario_id: func._id,
             status: 'Ativo',
-          }).populate('beneficio_id', 'nome tipo frequencia status');
+          }).populate('beneficio_id', 'nome tipo frequencia status incide_inss incide_irps');
         }
 
         let beneficioTransporteValor = 0;
@@ -278,6 +278,8 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
         let allowanceCombustivel = 0;
         let allowanceTelefone = 0;
         let beneficiosOutrosValor = 0;
+        let beneficiosIncideINSSValor = 0;
+        let beneficiosIncideIRPSValor = 0;
 
         for (const atribuicao of atribuicoesBeneficios) {
           const beneficio = atribuicao.beneficio_id;
@@ -313,6 +315,14 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
             // já contabilizado em allowance
           } else {
             beneficiosOutrosValor += valor;
+          }
+
+          // Somar base de incidência de INSS e IRPS
+          if (beneficio.incide_inss) {
+            beneficiosIncideINSSValor += valor;
+          }
+          if (beneficio.incide_irps !== false) {
+            beneficiosIncideIRPSValor += valor;
           }
         }
 
@@ -387,15 +397,15 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
           }
         }
 
+        const baseINSS = salarioProRata + beneficiosIncideINSSValor;
         const inssTrabalhador = descontoINSSManual > 0
           ? round2(descontoINSSManual)
-          : calcINSSTrabalhador(salarioProRata);
-        const inssEmpregador = calcINSSEmpregador(salarioProRata);
+          : calcINSSTrabalhador(baseINSS);
+        const inssEmpregador = calcINSSEmpregador(baseINSS);
         const quotaSindical = calcQuotaSindical(salarioProRata);
 
         const numDependentes = Number(func.num_dependentes || 0);
-        const rendimentoTributavel = salarioProRata + horasExtrasValor + allowanceBonus +
-          allowanceCombustivel + allowanceTelefone + beneficioTransporteValor + beneficioAlimentacaoValor;
+        const rendimentoTributavel = salarioProRata + beneficiosIncideIRPSValor + horasExtrasValor + allowanceBonus;
         const irps = descontoIRPSManual > 0
           ? round2(descontoIRPSManual)
           : calcIRPS(rendimentoTributavel - inssTrabalhador, numDependentes);
@@ -411,6 +421,8 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
           base_bonus: baseBonus,
           beneficio_transporte_valor: beneficioTransporteValor,
           beneficio_alimentacao_valor: beneficioAlimentacaoValor,
+          beneficios_incide_inss_valor: beneficiosIncideINSSValor,
+          beneficios_incide_irps_valor: beneficiosIncideIRPSValor,
           horas_extras_valor: horasExtrasValor,
           horas_extras_dia_normal: horasExtrasDiaNormal,
           horas_extras_feriado: horasExtrasFeriado,

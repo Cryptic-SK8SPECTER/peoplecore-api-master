@@ -168,5 +168,49 @@ exports.getItemFolha = factory.getOne(ItemFolha, [
   { path: 'folha_id', select: 'mes_referencia status' }
 ]);
 exports.createItemFolha = factory.createOne(ItemFolha);
-exports.updateItemFolha = factory.updateOne(ItemFolha);
+exports.updateItemFolha = catchAsync(async (req, res, next) => {
+  const item = await ItemFolha.findById(req.params.id);
+
+  if (!item) {
+    return next(new AppError('Item de folha não encontrado', 404));
+  }
+
+  // Se o item pertence a um funcionário de outra empresa, não permitir
+  const func = await Funcionario.findById(item.funcionario_id);
+  if (!func || func.empresa_id.toString() !== req.user.empresa_id.toString()) {
+    return next(new AppError('Sem permissão para alterar este item', 403));
+  }
+
+  // Atualizar campos do corpo da requisição
+  Object.keys(req.body).forEach((key) => {
+    item[key] = req.body[key];
+  });
+
+  // Salvar o item (isto dispara o pre('save') hook do itemFolhaModel, que recalcula tudo)
+  await item.save();
+
+  // Recalcular o total da FolhaPagamento correspondente
+  const todosItens = await ItemFolha.find({ folha_id: item.folha_id });
+  let totalBruto = 0;
+  let totalDescontos = 0;
+  let totalLiquido = 0;
+  for (const it of todosItens) {
+    totalBruto += it.salario_total || 0;
+    totalDescontos += it.descontos_total || 0;
+    totalLiquido += it.salario_liquido || 0;
+  }
+
+  await FolhaPagamento.findByIdAndUpdate(item.folha_id, {
+    total_bruto: totalBruto,
+    total_descontos: totalDescontos,
+    total_liquido: totalLiquido,
+  });
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      data: item
+    }
+  });
+});
 exports.deleteItemFolha = factory.deleteOne(ItemFolha);

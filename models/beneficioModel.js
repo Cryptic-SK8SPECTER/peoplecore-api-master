@@ -28,6 +28,14 @@ const beneficioSchema = new mongoose.Schema({
     enum: ['Único', 'Mensal', 'Trimestral', 'Semestral', 'Anual'],
     default: 'Mensal'
   },
+  incide_inss: {
+    type: Boolean,
+    default: false
+  },
+  incide_irps: {
+    type: Boolean,
+    default: true
+  },
   status: {
     type: String,
     enum: ['Ativo', 'Inativo'],
