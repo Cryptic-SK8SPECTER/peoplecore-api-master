@@ -96,7 +96,21 @@ const presencaSchema = new mongoose.Schema({
     type: String,
     trim: true,
     maxlength: [500, 'Observações não podem exceder 500 caracteres']
-  }
+  },
+  status_aprovacao: {
+    type: String,
+    enum: ['Pendente', 'Aprovado', 'Rejeitado'],
+    default: 'Pendente',
+  },
+  aprovado_por: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+  },
+  aprovado_em: {
+    type: Date,
+    default: null,
+  },
 }, {
   timestamps: true
 });

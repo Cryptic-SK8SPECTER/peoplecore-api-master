@@ -1,6 +1,7 @@
 const FolhaPagamento = require('./../models/folhaPagamentoModel');
 const ItemFolha = require('./../models/itemFolhaModel');
 const Funcionario = require('./../models/funcionarioModel');
+const Empresa = require('./../models/empresaModel');
 require('./../models/subUnidadeModel');
 const Bonus = require('./../models/bonusModel');
 const Desconto = require('./../models/descontoModel');
@@ -20,6 +21,11 @@ const {
   isWeekend,
   categorizeBeneficio,
 } = require('./../utils/payrollCalculations');
+const {
+  getProRataAudit,
+  calculatePayrollDays,
+} = require('./../utils/payrollDaysCalculator');
+const { calculateVacationPayout } = require('./../utils/vacationPayoutCalculator');
 
 const FREQUENCIA_MESES = {
   Único: 0,
@@ -91,36 +97,6 @@ function calculateProRata(funcionario, periodStart, periodEnd) {
   const totalDiasPeriodo = daysInclusive(periodStart, periodEnd);
   const diasElegiveis = daysInclusive(effectiveStart, effectiveEnd);
   return Math.max(0, Math.min(1, diasElegiveis / totalDiasPeriodo));
-}
-
-function getProRataAudit(funcionario, periodStart, periodEnd) {
-  const status = String(funcionario?.status || '').toLowerCase();
-  const isEventoDesligamento =
-    status === 'demitido' || status === 'falecido';
-
-  if (isEventoDesligamento && !funcionario?.data_saida) {
-    return { ratio: 0, diasElegiveis: 0, diasPeriodo: daysInclusive(periodStart, periodEnd) };
-  }
-
-  const admissao = funcionario?.data_admissao
-    ? startOfDay(funcionario.data_admissao)
-    : startOfDay(periodStart);
-  const saida = funcionario?.data_saida
-    ? endOfDay(funcionario.data_saida)
-    : endOfDay(periodEnd);
-
-  const effectiveStart = admissao > periodStart ? admissao : periodStart;
-  const effectiveEnd = saida < periodEnd ? saida : periodEnd;
-  const diasPeriodo = daysInclusive(periodStart, periodEnd);
-  if (effectiveEnd < effectiveStart) {
-    return { ratio: 0, diasElegiveis: 0, diasPeriodo };
-  }
-  const diasElegiveis = daysInclusive(effectiveStart, effectiveEnd);
-  return {
-    ratio: Math.max(0, Math.min(1, diasElegiveis / diasPeriodo)),
-    diasElegiveis,
-    diasPeriodo,
-  };
 }
 
 // Middleware: define empresa_id do usuário logado
@@ -220,6 +196,9 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
     const periodStart = new Date(`${folha.ano}-${meses[folha.mes]}-01T00:00:00.000Z`);
     const periodEnd = new Date(folha.ano, refMonth, 0, 23, 59, 59, 999);
 
+    const empresa = await Empresa.findById(req.user.empresa_id).select('configuracao_folha');
+    const empresaConfig = empresa?.configuracao_folha || {};
+
     const funcionarios = await Funcionario.find({
       empresa_id: req.user.empresa_id,
       status: { $in: ['Ativo', 'Demitido', 'Falecido'] },
@@ -242,36 +221,25 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
         const proRata = proRataAudit.ratio;
         if (proRata <= 0) return;
 
+        const payrollDays = await calculatePayrollDays(func, periodStart, periodEnd);
+        const {
+          diasInss,
+          ausenciaDias,
+          diasCalculoSalario,
+          diasPeriodo,
+          percentualProRata,
+        } = payrollDays;
+
         const salarioBaseIntegral = func.cargo_id?.salario_base ?? 0;
-        const salarioProRata = round2(salarioBaseIntegral * proRata);
-        const salarioDiario = calcSalarioDiario(salarioBaseIntegral, proRataAudit.diasPeriodo);
+        const salarioProRata = round2(salarioBaseIntegral * percentualProRata);
+        const salarioDiario = calcSalarioDiario(salarioBaseIntegral, diasPeriodo);
         const baseBonus = salarioBaseIntegral;
 
-        // Ausências não justificadas no período
-        const faltas = await Falta.find({
+        // Benefícios (carregar todos os benefícios ativos parametrizados para o funcionário)
+        const atribuicoesBeneficios = await BeneficioFuncionario.find({
           funcionario_id: func._id,
-          data: { $gte: periodStart, $lte: periodEnd },
-          tipo: 'Não Justificada',
-        });
-        const ausenciaDias = faltas.length;
-        const diasCalculoSalario = Math.max(0, proRataAudit.diasElegiveis - ausenciaDias);
-        const diasInss = proRataAudit.diasElegiveis;
-
-        // Benefícios (ficam desativados quando o funcionário se ausenta - possui falta no período ou status de férias/licença/suspenso)
-        const temFalta = await Falta.exists({
-          funcionario_id: func._id,
-          data: { $gte: periodStart, $lte: periodEnd }
-        });
-        const statusAusente = ['férias', 'licença', 'suspenso'].includes(String(func.status).toLowerCase());
-        const seAusentou = temFalta || statusAusente;
-
-        let atribuicoesBeneficios = [];
-        if (!seAusentou) {
-          atribuicoesBeneficios = await BeneficioFuncionario.find({
-            funcionario_id: func._id,
-            status: 'Ativo',
-          }).populate('beneficio_id', 'nome tipo frequencia status incide_inss incide_irps');
-        }
+          status: 'Ativo',
+        }).populate('beneficio_id', 'nome tipo frequencia status incide_inss incide_irps');
 
         let beneficioTransporteValor = 0;
         let beneficioAlimentacaoValor = 0;
@@ -280,6 +248,7 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
         let beneficiosOutrosValor = 0;
         let beneficiosIncideINSSValor = 0;
         let beneficiosIncideIRPSValor = 0;
+        const beneficiosDetalhe = new Map();
 
         for (const atribuicao of atribuicoesBeneficios) {
           const beneficio = atribuicao.beneficio_id;
@@ -300,19 +269,45 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
             continue;
           }
 
-          const valor = Number(atribuicao.valor || 0) * proRata;
+          const valor = Number(atribuicao.valor || 0) * percentualProRata;
+          const nome = String(beneficio.nome || '').toLowerCase();
           const tipo = String(beneficio.tipo || '').toLowerCase();
           const cat = categorizeBeneficio(beneficio, valor);
+          const chaveDetalhe = beneficio.nome || beneficio.tipo || 'Outro';
+          beneficiosDetalhe.set(chaveDetalhe, (beneficiosDetalhe.get(chaveDetalhe) || 0) + valor);
 
-          allowanceCombustivel += cat.combustivel;
-          allowanceTelefone += cat.telefone;
+          const isTransporte = tipo === 'transporte' ||
+            nome.includes('transporte') ||
+            nome.includes('transport') ||
+            nome.includes('desloc');
 
-          if (tipo === 'transporte') {
+          const isAlimentacao = tipo === 'alimentação' ||
+            tipo === 'alimentacao' ||
+            nome.includes('alimentação') ||
+            nome.includes('alimentacao') ||
+            nome.includes('refeição') ||
+            nome.includes('refeicao') ||
+            nome.includes('food') ||
+            nome.includes('meal');
+
+          const isCombustivel = cat.combustivel > 0 ||
+            nome.includes('combust') ||
+            nome.includes('fuel');
+
+          const isTelefone = cat.telefone > 0 ||
+            nome.includes('telefone') ||
+            nome.includes('celular') ||
+            nome.includes('phone') ||
+            nome.includes('comunic');
+
+          if (isTransporte) {
             beneficioTransporteValor += valor;
-          } else if (tipo === 'alimentação' || tipo === 'alimentacao') {
+          } else if (isAlimentacao) {
             beneficioAlimentacaoValor += valor;
-          } else if (cat.combustivel || cat.telefone) {
-            // já contabilizado em allowance
+          } else if (isCombustivel) {
+            allowanceCombustivel += valor;
+          } else if (isTelefone) {
+            allowanceTelefone += valor;
           } else {
             beneficiosOutrosValor += valor;
           }
@@ -397,7 +392,19 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
           }
         }
 
-        const baseINSS = salarioProRata + beneficiosIncideINSSValor;
+        const vacationPayout = await calculateVacationPayout({
+          funcionario: func,
+          folhaMes: folha.mes,
+          folhaAno: folha.ano,
+          empresaConfig,
+          salarioDiario,
+          periodStart,
+          periodEnd,
+        });
+
+        const baseINSS = salarioProRata +
+          beneficiosIncideINSSValor +
+          vacationPayout.ferias_pagamento_valor;
         const inssTrabalhador = descontoINSSManual > 0
           ? round2(descontoINSSManual)
           : calcINSSTrabalhador(baseINSS);
@@ -405,7 +412,11 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
         const quotaSindical = calcQuotaSindical(salarioProRata);
 
         const numDependentes = Number(func.num_dependentes || 0);
-        const rendimentoTributavel = salarioProRata + beneficiosIncideIRPSValor + horasExtrasValor + allowanceBonus;
+        const rendimentoTributavel = salarioProRata +
+          beneficiosIncideIRPSValor +
+          horasExtrasValor +
+          allowanceBonus +
+          vacationPayout.ferias_pagamento_valor;
         const irps = descontoIRPSManual > 0
           ? round2(descontoIRPSManual)
           : calcIRPS(rendimentoTributavel - inssTrabalhador, numDependentes);
@@ -443,8 +454,11 @@ exports.processarFolha = catchAsync(async (req, res, next) => {
           dias_inss: diasInss,
           ausencia_dias: ausenciaDias,
           dias_elegiveis: diasCalculoSalario,
-          dias_periodo: proRataAudit.diasPeriodo,
-          percentual_pro_rata: proRata,
+          dias_periodo: diasPeriodo,
+          percentual_pro_rata: percentualProRata,
+          dias_ferias_pagar: vacationPayout.dias_ferias_pagar,
+          ferias_pagamento_valor: vacationPayout.ferias_pagamento_valor,
+          beneficios_detalhe: beneficiosDetalhe,
           status: 'Processado',
         };
 

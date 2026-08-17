@@ -153,6 +153,23 @@ const empresaSchema = new mongoose.Schema({
   fundo_salarios: { type: Number, default: null, min: 0 },
   numero_folha_nominal: { type: String, trim: true },
   // ─── Código de funcionário ──────────────────────────────────
+  configuracao_folha: {
+    pagamento_ferias_mensal: {
+      type: Boolean,
+      default: false,
+    },
+    mes_pagamento_ferias: {
+      type: String,
+      enum: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro', null],
+      default: null,
+    },
+    mes_pagamento_ferias_numero: {
+      type: Number,
+      min: 1,
+      max: 12,
+      default: null,
+    },
+  },
   codigo_funcionario: {
     modo: {
       type: String,

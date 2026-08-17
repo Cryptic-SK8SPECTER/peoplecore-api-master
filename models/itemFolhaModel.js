@@ -188,6 +188,21 @@ const itemFolhaSchema = new mongoose.Schema({
     min: [0, 'Percentual pró-rata inválido'],
     max: [1, 'Percentual pró-rata inválido']
   },
+  dias_ferias_pagar: {
+    type: Number,
+    default: 0,
+    min: [0, 'Dias de férias a pagar não podem ser negativos'],
+  },
+  ferias_pagamento_valor: {
+    type: Number,
+    default: 0,
+    min: [0, 'Valor de férias não pode ser negativo'],
+  },
+  beneficios_detalhe: {
+    type: Map,
+    of: Number,
+    default: () => new Map(),
+  },
   salario_liquido: {
     type: Number,
     min: [0, 'Salário líquido não pode ser negativo']
@@ -241,7 +256,9 @@ itemFolhaSchema.pre('save', function(next) {
   }
 
   // Recalcular INSS e Quota Sindical com base de incidência parametrizada
-  const baseINSS = (this.salario_base || 0) + (this.beneficios_incide_inss_valor || 0);
+  const baseINSS = (this.salario_base || 0) +
+    (this.beneficios_incide_inss_valor || 0) +
+    (this.ferias_pagamento_valor || 0);
   this.inss_trabalhador = calcINSSTrabalhador(baseINSS);
   this.inss_empregador = calcINSSEmpregador(baseINSS);
   this.quota_sindical = calcQuotaSindical(this.salario_base); // Quota sindical incide apenas sobre o salário base
@@ -250,7 +267,8 @@ itemFolhaSchema.pre('save', function(next) {
   const rendimentoTributavel = (this.salario_base || 0) +
     (this.beneficios_incide_irps_valor || 0) +
     (this.horas_extras_valor || 0) +
-    (this.allowance_bonus || 0);
+    (this.allowance_bonus || 0) +
+    (this.ferias_pagamento_valor || 0);
 
   this.irps = calcIRPS(rendimentoTributavel - this.inss_trabalhador, this.num_dependentes || 0);
 
@@ -268,6 +286,7 @@ itemFolhaSchema.pre('save', function(next) {
     allowanceTelefone: this.allowance_telefone,
     beneficioTransporte: this.beneficio_transporte_valor,
     beneficioAlimentacao: this.beneficio_alimentacao_valor,
+    feriasPagamentoValor: this.ferias_pagamento_valor,
     adjustmentPlus: this.adjustment_plus,
     adjustmentDeduct: this.adjustment_deduct,
   });

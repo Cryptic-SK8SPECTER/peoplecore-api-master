@@ -162,6 +162,7 @@ exports.updateMinhaEmpresa = catchAsync(async (req, res, next) => {
     'horario_entrada',
     'horario_saida',
     'codigo_funcionario',
+    'configuracao_folha',
   ];
   const updates = {};
   camposPermitidos.forEach((campo) => {

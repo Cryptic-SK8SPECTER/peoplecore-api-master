@@ -66,6 +66,7 @@ function calcSalarioTotal({
   allowanceTelefone,
   beneficioTransporte,
   beneficioAlimentacao,
+  feriasPagamentoValor,
   adjustmentPlus,
   adjustmentDeduct,
 }) {
@@ -78,6 +79,7 @@ function calcSalarioTotal({
     (allowanceTelefone || 0) +
     (beneficioTransporte || 0) +
     (beneficioAlimentacao || 0) +
+    (feriasPagamentoValor || 0) +
     (adjustmentPlus || 0) -
     (adjustmentDeduct || 0)
   );

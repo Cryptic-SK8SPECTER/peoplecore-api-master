@@ -64,9 +64,6 @@ function normalizeDateOnly(d) {
 }
 
 function isContratoForaDoPeriodo(funcionario, dia) {
-  const tipo = String(funcionario?.tipo_contrato || '').toLowerCase();
-  if (!PERIOD_TIPO_CONTRATO.has(tipo)) return false;
-
   if (funcionario?.data_admissao) {
     const start = normalizeDateOnly(funcionario.data_admissao);
     if (dia.getTime() < start.getTime()) return true;
