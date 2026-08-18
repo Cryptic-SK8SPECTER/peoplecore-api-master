@@ -151,7 +151,7 @@ exports.getByMesAno = catchAsync(async (req, res, next) => {
   const itens = await ItemFolha.find({ folha_id: folha._id })
     .populate({
       path: 'funcionario_id',
-      select: 'nome email codigo_interno nacionalidade data_admissao data_saida departamento_id cargo_id sub_unidade_id num_dependentes local_trabalho',
+      select: 'nome email codigo_interno inss nacionalidade data_admissao data_saida departamento_id cargo_id sub_unidade_id num_dependentes local_trabalho',
       populate: [
         { path: 'departamento_id', select: 'nome' },
         { path: 'cargo_id', select: 'nome titulo salario_base' },

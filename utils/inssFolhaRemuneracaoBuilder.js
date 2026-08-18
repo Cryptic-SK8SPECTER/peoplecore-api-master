@@ -109,7 +109,7 @@ async function buildInssFolhaRemuneracaoData({
   const { mesNome, ano: year, mesIndex, mesNumero } = resolveMesAno(mes, ano);
 
   const empresa = await Empresa.findById(empresaId).select(
-    'nome nome_comercial nif inss_empresa',
+    'nome nome_comercial nif inss_empresa endereco telefone localidade caixa_postal actividade_principal',
   );
   if (!empresa) throw new AppError('Empresa não encontrada', 404);
 
@@ -140,7 +140,8 @@ async function buildInssFolhaRemuneracaoData({
         const remuneracao = round2(Number(it.salario_base || 0));
         const subsidios = sumSubsidios(it);
         const comissao = sumComissao(it);
-        const total = round2(remuneracao + subsidios + comissao);
+        const ferias = round2(Number(it.ferias_pagamento_valor || 0));
+        const total = round2(remuneracao + subsidios + comissao + ferias);
         const { evento, data_evento } = resolveEvento(f, mesIndex, year);
 
         return {
@@ -152,6 +153,7 @@ async function buildInssFolhaRemuneracaoData({
           remuneracao,
           subsidios,
           comissao,
+          ferias,
           total,
           evento,
           data_evento,
@@ -183,6 +185,7 @@ async function buildInssFolhaRemuneracaoData({
         remuneracao: 0,
         subsidios: 0,
         comissao: 0,
+        ferias: 0,
         total: 0,
         evento,
         data_evento,
@@ -234,6 +237,11 @@ async function buildInssFolhaRemuneracaoData({
       nome_comercial: empresa.nome_comercial,
       nif: empresa.nif,
       inss_empresa: empresa.inss_empresa,
+      endereco: empresa.endereco || '',
+      telefone: empresa.telefone || '',
+      localidade: empresa.localidade || '',
+      caixa_postal: empresa.caixa_postal || '',
+      actividade_principal: empresa.actividade_principal || '',
     },
     folha_id: folha?._id || null,
     folha_status: folha?.status || null,
@@ -315,6 +323,7 @@ const INSS_FOLHA_CAMPOS_EDITAVEIS = [
 
 module.exports = {
   MESES,
+  resolveMesAno,
   buildInssFolhaRemuneracaoData,
   applyInssFolhaPersonalizacao,
   INSS_FOLHA_CAMPOS_EDITAVEIS,

@@ -35,4 +35,7 @@ router.post(
   reportController.postInssFolhaRemuneracaoExcel,
 );
 
+router.get('/sissmo-txt', reportController.getSissmoTxtPreview);
+router.get('/sissmo-txt/download', reportController.getSissmoTxtDownload);
+
 module.exports = router;

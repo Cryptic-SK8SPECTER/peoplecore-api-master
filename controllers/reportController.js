@@ -29,6 +29,10 @@ const {
 const {
   generateInssFolhaRemuneracaoExcel,
 } = require('../utils/inssFolhaRemuneracaoExcel');
+const {
+  buildSissmoTxtData,
+  generateSissmoTxtBuffer,
+} = require('../utils/sissmoTxtExport');
 
 const MESES = [
   'Janeiro',
@@ -608,4 +612,59 @@ exports.postInssFolhaRemuneracaoExcel = catchAsync(async (req, res) => {
     filename,
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   );
+});
+
+const buildSissmoPayload = async (req) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.method === 'GET' ? req.query : req.body;
+  return buildSissmoTxtData({
+    empresaId,
+    mes: source.mes,
+    ano: source.ano,
+    requireFechado: source.require_fechado !== 'false' && source.require_fechado !== false,
+  });
+};
+
+/**
+ * GET /reports/sissmo-txt?mes=&ano=
+ * Pré-validação JSON (sem download) — inclui lista de colaboradores sem INSS.
+ */
+exports.getSissmoTxtPreview = catchAsync(async (req, res) => {
+  const data = await buildSissmoPayload(req);
+  res.status(200).json({
+    status: 'success',
+    data: {
+      tipo: data.tipo,
+      mes: data.mes,
+      mes_numero: data.mes_numero,
+      ano: data.ano,
+      folha_id: data.folha_id,
+      folha_status: data.folha_status,
+      filename: data.filename,
+      total_linhas: data.total_linhas,
+      valido: data.valido,
+      sem_inss: data.sem_inss,
+      gerado_em: data.gerado_em,
+    },
+  });
+});
+
+/**
+ * GET /reports/sissmo-txt/download?mes=&ano=
+ * Download do ficheiro .txt para upload no SISSMO.
+ */
+exports.getSissmoTxtDownload = catchAsync(async (req, res, next) => {
+  const data = await buildSissmoPayload(req);
+
+  if (!data.valido) {
+    return next(
+      new AppError(
+        `${data.sem_inss.length} colaborador(es) sem número de INSS registado. Corrija os cadastros antes de exportar.`,
+        422,
+      ),
+    );
+  }
+
+  const buffer = generateSissmoTxtBuffer(data);
+  sendRelacaoNominalFile(res, buffer, data.filename, 'text/plain; charset=utf-8');
 });
