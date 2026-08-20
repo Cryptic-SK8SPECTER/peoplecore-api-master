@@ -15,174 +15,120 @@ const fmtPct = (v) => {
   return `${n > 0 ? '+' : ''}${n.toFixed(1)}%`;
 };
 
+const colors = {
+  green: { bg: '#e2f0d9', text: '#385723', label: 'Sem Alteração' },
+  red: { bg: '#fce4d6', text: '#c00000', label: 'Subida de Custo' },
+  yellow: { bg: '#fff2cc', text: '#7f6000', label: 'Redução de Custo' }
+};
+
 function drawHeader(doc, data, pageNum, pageTotal) {
   const { empresa, periodo_selecionado, periodo_referencia, data_emissao } = data;
   const topY = 30;
 
-  // 1. Título e Info da Empresa (Esquerda)
+  // 1. Título e Info da Empresa
   doc.fillColor('#1e293b').font('Helvetica-Bold').fontSize(14);
-  doc.text('Relatório Comparativo Salarial (Company Variance)', 30, topY);
+  doc.text('Relatório Comparativo por Rubrica (Company Variance)', 30, topY);
   
   doc.font('Helvetica-Bold').fontSize(9).fillColor('#475569');
   doc.text(empresa.nome_comercial || empresa.nome || '', 30, topY + 20);
   
   doc.font('Helvetica').fontSize(8).fillColor('#64748b');
-  doc.text(`NIF: ${empresa.nif || ''} | Endereço: ${empresa.endereco || ''}, ${empresa.localidade || ''}`, 30, topY + 32);
+  doc.text(`NIF: ${empresa.nif || ''} | Endereço: ${empresa.endereco || ''}`, 30, topY + 32);
 
   // 2. Info de Emissão (Direita)
   doc.font('Helvetica').fontSize(8).fillColor('#64748b');
   doc.text(`Gerado em: ${data_emissao}`, 600, topY, { width: 212, align: 'right' });
   doc.text(`Página: ${pageNum} de ${pageTotal}`, 600, topY + 12, { width: 212, align: 'right' });
 
-  // 3. Período Comparado (Meio/Direita)
+  // 3. Período Comparado
   doc.font('Helvetica-Bold').fontSize(9).fillColor('#334155');
   doc.text(
     `Período Analisado: ${periodo_selecionado.mes}/${periodo_selecionado.ano} vs ${periodo_referencia.mes}/${periodo_referencia.ano}`,
     30,
-    topY + 50
+    topY + 48
   );
 
-  doc.moveTo(30, topY + 65).lineTo(812, topY + 65).lineWidth(0.5).strokeColor('#cbd5e1').stroke();
+  doc.moveTo(30, topY + 62).lineTo(812, topY + 62).lineWidth(0.5).strokeColor('#cbd5e1').stroke();
 }
 
 function drawSummaryCards(doc, data, y) {
   const { resumo_variacao, periodo_selecionado, periodo_referencia } = data;
   
-  const cardW = 180;
-  const cardH = 50;
-  const gap = 15;
+  const cardW = 376;
+  const cardH = 46;
+  const gap = 30;
   const startX = 30;
 
   const cards = [
     {
-      title: 'Colaboradores Processados',
-      curr: `${periodo_selecionado.contagem} colab.`,
-      prev: `${periodo_referencia.contagem} colab.`,
-      diff: `${resumo_variacao.colaboradores > 0 ? '+' : ''}${resumo_variacao.colaboradores}`,
-      diffColor: resumo_variacao.colaboradores >= 0 ? '#16a34a' : '#dc2626'
-    },
-    {
-      title: 'Total Salário Bruto',
+      title: 'TOTAL GROSS SALARY (TOTAL DE ABONOS)',
       curr: `${fmtMoney(periodo_selecionado.total_bruto)} MT`,
       prev: `${fmtMoney(periodo_referencia.total_bruto)} MT`,
       diff: `${fmtMoney(resumo_variacao.bruto)} MT (${fmtPct(resumo_variacao.bruto_pct)})`,
-      diffColor: resumo_variacao.bruto >= 0 ? '#16a34a' : '#dc2626'
+      diffColor: resumo_variacao.bruto >= 0 ? '#dc2626' : '#16a34a' // For costs: increase is red, decrease is green/yellow
     },
     {
-      title: 'Total Descontos',
-      curr: `${fmtMoney(periodo_selecionado.total_descontos)} MT`,
-      prev: `${fmtMoney(periodo_referencia.total_descontos)} MT`,
-      diff: `${fmtMoney(resumo_variacao.descontos)} MT (${fmtPct(resumo_variacao.descontos_pct)})`,
-      diffColor: '#475569'
-    },
-    {
-      title: 'Total Salário Líquido',
+      title: 'TOTAL NET SALARY (SALÁRIO LÍQUIDO)',
       curr: `${fmtMoney(periodo_selecionado.total_liquido)} MT`,
       prev: `${fmtMoney(periodo_referencia.total_liquido)} MT`,
       diff: `${fmtMoney(resumo_variacao.liquido)} MT (${fmtPct(resumo_variacao.liquido_pct)})`,
-      diffColor: resumo_variacao.liquido >= 0 ? '#16a34a' : '#dc2626'
+      diffColor: resumo_variacao.liquido >= 0 ? '#dc2626' : '#16a34a'
     }
   ];
 
   cards.forEach((card, idx) => {
     const x = startX + idx * (cardW + gap);
     
-    // Background card box
     doc.fillColor('#f8fafc').rect(x, y, cardW, cardH).fill();
     doc.rect(x, y, cardW, cardH).lineWidth(0.5).strokeColor('#e2e8f0').stroke();
 
-    // Text inside card
-    doc.fillColor('#64748b').font('Helvetica-Bold').fontSize(7.5).text(card.title, x + 8, y + 6);
+    doc.fillColor('#64748b').font('Helvetica-Bold').fontSize(7.5).text(card.title, x + 12, y + 6);
+    doc.fillColor('#0f172a').font('Helvetica-Bold').fontSize(10.5).text(card.curr, x + 12, y + 15);
+    doc.fillColor('#94a3b8').font('Helvetica').fontSize(7).text(`Anterior: ${card.prev}`, x + 12, y + 26);
     
-    doc.fillColor('#0f172a').font('Helvetica-Bold').fontSize(10).text(card.curr, x + 8, y + 16);
-    
-    doc.fillColor('#94a3b8').font('Helvetica').fontSize(7).text(`Anterior: ${card.prev}`, x + 8, y + 28);
-    
-    doc.fillColor(card.diffColor).font('Helvetica-Bold').fontSize(7.5).text(`Var: ${card.diff}`, x + 8, y + 37);
+    // Position variance indicators
+    doc.fillColor(card.diffColor).font('Helvetica-Bold').fontSize(7.5);
+    doc.text(`Variação: ${card.diff}`, x + 180, y + 26, { width: 180, align: 'right' });
   });
 }
 
-function drawTableHeader(doc, y) {
-  doc.fillColor('#f1f5f9').rect(30, y, 782, 20).fill();
-  doc.rect(30, y, 782, 20).lineWidth(0.5).strokeColor('#cbd5e1').stroke();
+function drawRubricTableHeader(doc, x, y) {
+  doc.fillColor('#f8fafc').rect(x, y, 732, 16).fill();
+  doc.rect(x, y, 732, 16).lineWidth(0.3).strokeColor('#cbd5e1').stroke();
 
-  doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#334155');
-  
-  doc.text('Cód', 35, y + 6);
-  doc.text('Nome do Colaborador', 85, y + 6);
-  doc.text('Bruto Anterior', 265, y + 6, { width: 80, align: 'right' });
-  doc.text('Bruto Atual', 350, y + 6, { width: 80, align: 'right' });
-  doc.text('Var. Bruto', 435, y + 6, { width: 70, align: 'right' });
-  
-  doc.text('Líq. Anterior', 510, y + 6, { width: 80, align: 'right' });
-  doc.text('Líq. Atual', 595, y + 6, { width: 80, align: 'right' });
-  doc.text('Var. Líquido', 680, y + 6, { width: 70, align: 'right' });
-  
-  doc.text('Estado', 755, y + 6);
+  doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#475569');
+  doc.text('Rubrica de Payroll', x + 10, y + 4);
+  doc.text('Mês Passado', x + 210, y + 4, { width: 100, align: 'right' });
+  doc.text('Mês Atual', x + 320, y + 4, { width: 100, align: 'right' });
+  doc.text('Diferença', x + 430, y + 4, { width: 100, align: 'right' });
+  doc.text('Variação %', x + 540, y + 4, { width: 70, align: 'right' });
+  doc.text('Estado / Impacto', x + 630, y + 4);
 }
 
-function drawDataRow(doc, r, y) {
-  doc.lineWidth(0.5).strokeColor('#f1f5f9');
-  doc.moveTo(30, y + 16).lineTo(812, y + 16).stroke();
+function drawRubricRow(doc, r, x, y) {
+  doc.lineWidth(0.3).strokeColor('#e2e8f0');
+  doc.moveTo(x, y + 14).lineTo(x + 732, y + 14).stroke();
 
   doc.font('Helvetica').fontSize(7.5).fillColor('#334155');
+  doc.text(r.rubrica, x + 10, y + 3);
   
-  doc.text(r.codigo_interno || '', 35, y + 4);
-  doc.text(r.nome || '', 85, y + 4, { width: 175, ellipsis: true, lineBreak: false });
+  doc.text(r.prev > 0 ? fmtMoney(r.prev) : '-', x + 210, y + 3, { width: 100, align: 'right' });
+  doc.text(r.curr > 0 ? fmtMoney(r.curr) : '-', x + 320, y + 3, { width: 100, align: 'right' });
   
-  doc.text(r.prev_bruto > 0 ? fmtMoney(r.prev_bruto) : '-', 265, y + 4, { width: 80, align: 'right' });
-  doc.text(r.curr_bruto > 0 ? fmtMoney(r.curr_bruto) : '-', 350, y + 4, { width: 80, align: 'right' });
+  // Format diff and alert background
+  const style = colors[r.alert];
   
-  // Var Bruto
-  let colorBruto = '#334155';
-  if (r.diff_bruto > 0.01) colorBruto = '#16a34a';
-  else if (r.diff_bruto < -0.01) colorBruto = '#dc2626';
-  doc.fillColor(colorBruto).font('Helvetica-Bold');
-  doc.text(r.diff_bruto !== 0 ? fmtMoney(r.diff_bruto) : '0,00', 435, y + 4, { width: 70, align: 'right' });
-  
-  doc.font('Helvetica').fillColor('#334155');
-  doc.text(r.prev_liquido > 0 ? fmtMoney(r.prev_liquido) : '-', 510, y + 4, { width: 80, align: 'right' });
-  doc.text(r.curr_liquido > 0 ? fmtMoney(r.curr_liquido) : '-', 595, y + 4, { width: 80, align: 'right' });
+  doc.font('Helvetica-Bold');
+  if (style) doc.fillColor(style.text);
+  doc.text(r.diff !== 0 ? fmtMoney(r.diff) : '0,00', x + 430, y + 3, { width: 100, align: 'right' });
+  doc.text(r.pct !== 0 ? fmtPct(r.pct) : '0.0%', x + 540, y + 3, { width: 70, align: 'right' });
 
-  // Var Liquido
-  let colorLiquido = '#334155';
-  if (r.diff_liquido > 0.01) colorLiquido = '#16a34a';
-  else if (r.diff_liquido < -0.01) colorLiquido = '#dc2626';
-  doc.fillColor(colorLiquido).font('Helvetica-Bold');
-  doc.text(r.diff_liquido !== 0 ? fmtMoney(r.diff_liquido) : '0,00', 680, y + 4, { width: 70, align: 'right' });
-
-  // Status Badge/Text
-  let statusColor = '#64748b';
-  if (r.status === 'Novo Colaborador') statusColor = '#2563eb';
-  else if (r.status === 'Demitido/Não Processado') statusColor = '#ea580c';
-  else if (r.status === 'Alterado') statusColor = '#0891b2';
-  doc.fillColor(statusColor).font('Helvetica-Bold').fontSize(7);
-  doc.text(r.status, 755, y + 4);
-}
-
-function drawTotalsRow(doc, totals, y) {
-  doc.fillColor('#fafafa').rect(30, y, 782, 18).fill();
-  doc.rect(30, y, 782, 18).lineWidth(0.5).strokeColor('#cbd5e1').stroke();
-
-  doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#0f172a');
-  doc.text('Totais Gerais', 85, y + 5);
-
-  doc.text(fmtMoney(totals.prev_bruto), 265, y + 5, { width: 80, align: 'right' });
-  doc.text(fmtMoney(totals.curr_bruto), 350, y + 5, { width: 80, align: 'right' });
-  
-  let colorBruto = '#0f172a';
-  if (totals.diff_bruto > 0) colorBruto = '#16a34a';
-  else if (totals.diff_bruto < 0) colorBruto = '#dc2626';
-  doc.fillColor(colorBruto).text(fmtMoney(totals.diff_bruto), 435, y + 5, { width: 70, align: 'right' });
-
-  doc.fillColor('#0f172a');
-  doc.text(fmtMoney(totals.prev_liquido), 510, y + 5, { width: 80, align: 'right' });
-  doc.text(fmtMoney(totals.curr_liquido), 595, y + 5, { width: 80, align: 'right' });
-
-  let colorLiquido = '#0f172a';
-  if (totals.diff_liquido > 0) colorLiquido = '#16a34a';
-  else if (totals.diff_liquido < 0) colorLiquido = '#dc2626';
-  doc.fillColor(colorLiquido).text(fmtMoney(totals.diff_liquido), 680, y + 5, { width: 70, align: 'right' });
+  // Draw light colored background badge for alert text
+  if (style) {
+    doc.fillColor(style.bg).rect(x + 630, y + 1.5, 92, 11).fill();
+    doc.fillColor(style.text).font('Helvetica-Bold').fontSize(6.5);
+    doc.text(style.label, x + 635, y + 3.5);
+  }
 }
 
 async function generateCompanyVariancePdf(data) {
@@ -199,76 +145,68 @@ async function generateCompanyVariancePdf(data) {
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    const linhas = data.linhas || [];
+    const lines = data.linhas || [];
+    const pageHeight = 595;
+    const margin = 30;
+    const initialY = 100;
+
+    let pageNum = 1;
+    drawHeader(doc, data, 1, 1);
     
-    // Totais Gerais
-    const totals = {
-      prev_bruto: linhas.reduce((s, l) => s + l.prev_bruto, 0),
-      curr_bruto: linhas.reduce((s, l) => s + l.curr_bruto, 0),
-      diff_bruto: 0,
-      prev_liquido: linhas.reduce((s, l) => s + l.prev_liquido, 0),
-      curr_liquido: myCurr = linhas.reduce((s, l) => s + l.curr_liquido, 0),
-      diff_liquido: 0
-    };
-    totals.diff_bruto = round2(totals.curr_bruto - totals.prev_bruto);
-    totals.diff_liquido = round2(totals.curr_liquido - totals.prev_liquido);
+    let currentY = initialY;
+    drawSummaryCards(doc, data, currentY);
+    currentY += 60; // card height + spacing
 
-    const maxRowsFirstPage = 18;
-    const maxRowsSubsequentPages = 28;
-    
-    // Calcular páginas necessárias
-    let pagesCount = 1;
-    let tempRows = linhas.length;
-    if (tempRows > maxRowsFirstPage) {
-      tempRows -= maxRowsFirstPage;
-      pagesCount += Math.ceil(tempRows / maxRowsSubsequentPages);
-    }
+    lines.forEach((linha) => {
+      const activeRubrics = (linha.rubricas || []).filter(r => r.prev !== 0 || r.curr !== 0);
+      if (activeRubrics.length === 0) return;
 
-    let currentLineIdx = 0;
+      // Calculate total height of this employee block
+      // 18 pt (employee header) + 16 pt (rubric table header) + N * 14 pt (rubric rows) + 12 pt (block padding)
+      const blockHeight = 18 + 16 + (activeRubrics.length * 14) + 12;
 
-    for (let pageIdx = 0; pageIdx < pagesCount; pageIdx += 1) {
-      if (pageIdx > 0) {
+      // If block exceeds page, add page
+      if (currentY + blockHeight > pageHeight - margin - 20) {
         doc.addPage();
+        pageNum += 1;
+        drawHeader(doc, data, pageNum, pageNum);
+        currentY = initialY;
       }
 
-      // 1. Draw Header
-      drawHeader(doc, data, pageIdx + 1, pagesCount);
-
-      let currentY = 105;
-
-      // 2. Draw Cards only on page 1
-      if (pageIdx === 0) {
-        drawSummaryCards(doc, data, currentY);
-        currentY += 65;
-      }
-
-      // 3. Draw Table Header
-      drawTableHeader(doc, currentY);
-      currentY += 20;
-
-      // 4. Draw Rows
-      const limit = pageIdx === 0 ? maxRowsFirstPage : maxRowsSubsequentPages;
-      const pageRows = linhas.slice(currentLineIdx, currentLineIdx + limit);
+      // Draw Employee Header Bar
+      doc.fillColor('#f1f5f9').rect(30, currentY, 782, 18).fill();
+      doc.rect(30, currentY, 782, 18).lineWidth(0.5).strokeColor('#cbd5e1').stroke();
       
-      pageRows.forEach((r) => {
-        drawDataRow(doc, r, currentY);
-        currentY += 16;
+      doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#0f172a');
+      doc.text(`Colaborador: [${linha.codigo_interno}] ${linha.nome}`, 38, currentY + 5);
+
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#4b5563');
+      doc.text(`Estado: ${linha.status}`, 650, currentY + 5, { width: 150, align: 'right' });
+      
+      currentY += 18;
+
+      // Draw Rubric Sub-table
+      const subTableX = 50;
+      drawRubricTableHeader(doc, subTableX, currentY);
+      currentY += 16;
+
+      activeRubrics.forEach((r) => {
+        drawRubricRow(doc, r, subTableX, currentY);
+        currentY += 14;
       });
 
-      currentLineIdx += pageRows.length;
+      currentY += 12; // Spacing after block
+    });
 
-      // 5. Draw Totals Row on the last page
-      if (pageIdx === pagesCount - 1) {
-        drawTotalsRow(doc, totals, currentY);
-      }
+    // Fix total pages count
+    const range = doc.bufferedPageRange();
+    for (let i = 0; i < range.count; i += 1) {
+      doc.switchToPage(i);
+      drawHeader(doc, data, i + 1, range.count);
     }
 
     doc.end();
   });
-}
-
-function round2(n) {
-  return Math.round((Number(n) || 0) * 100) / 100;
 }
 
 module.exports = {

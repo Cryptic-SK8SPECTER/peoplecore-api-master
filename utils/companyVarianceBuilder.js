@@ -44,7 +44,18 @@ const getPreviousPeriod = (mesNome, ano) => {
   return { mesNome: MESES[idx - 1], ano };
 };
 
-async function buildCompanyVarianceData({ empresaId, mes, ano }) {
+const getSubsidiosTotal = (it) => {
+  if (!it) return 0;
+  return round2(
+    Number(it.beneficio_transporte_valor || it.subsidio_transporte_valor || 0) +
+    Number(it.beneficio_alimentacao_valor || it.subsidio_alimentacao_valor || 0) +
+    Number(it.allowance_bonus || 0) +
+    Number(it.allowance_combustivel || 0) +
+    Number(it.allowance_telefone || 0)
+  );
+};
+
+async function buildCompanyVarianceData({ empresaId, mes, ano, subUnidadeId, departamentoId }) {
   if (!empresaId) throw new AppError('empresa_id é obrigatório', 400);
 
   const now = new Date();
@@ -55,6 +66,14 @@ async function buildCompanyVarianceData({ empresaId, mes, ano }) {
     'nome nome_comercial nif inss_empresa endereco telefone localidade'
   );
   if (!empresa) throw new AppError('Empresa não encontrada', 404);
+
+  // Filters for employee query
+  const employeeFilter = { empresa_id: empresaId };
+  if (subUnidadeId) employeeFilter.sub_unidade_id = subUnidadeId;
+  if (departamentoId) employeeFilter.departamento_id = departamentoId;
+
+  const matchingEmployees = await Funcionario.find(employeeFilter).select('_id');
+  const matchingEmployeeIds = matchingEmployees.map(f => f._id);
 
   // Folha Selecionada (Atual)
   const folhaAtual = await FolhaPagamento.findOne({
@@ -75,14 +94,20 @@ async function buildCompanyVarianceData({ empresaId, mes, ano }) {
 
   let itensAtual = [];
   if (folhaAtual) {
-    itensAtual = await ItemFolha.find({ folha_id: folhaAtual._id })
+    itensAtual = await ItemFolha.find({
+      folha_id: folhaAtual._id,
+      funcionario_id: { $in: matchingEmployeeIds }
+    })
       .populate('funcionario_id', 'nome codigo_interno nif status data_admissao')
       .lean();
   }
 
   let itensAnterior = [];
   if (folhaAnterior) {
-    itensAnterior = await ItemFolha.find({ folha_id: folhaAnterior._id })
+    itensAnterior = await ItemFolha.find({
+      folha_id: folhaAnterior._id,
+      funcionario_id: { $in: matchingEmployeeIds }
+    })
       .populate('funcionario_id', 'nome codigo_interno nif status data_admissao')
       .lean();
   }
@@ -132,6 +157,46 @@ async function buildCompanyVarianceData({ empresaId, mes, ano }) {
       status = 'Alterado';
     }
 
+    // Comparison for all individual rubrics
+    const rubricasCompara = [
+      { label: 'Salário Base', prev: itP ? round2(itP.salario_base) : 0, curr: itA ? round2(itA.salario_base) : 0 },
+      { label: 'Horas Extras', prev: itP ? round2(itP.horas_extras_valor) : 0, curr: itA ? round2(itA.horas_extras_valor) : 0 },
+      { label: 'Turno Noturno', prev: itP ? round2(itP.salario_noturno) : 0, curr: itA ? round2(itA.salario_noturno) : 0 },
+      { label: 'Bónus e Comissões', prev: itP ? round2(itP.bonus_total) : 0, curr: itA ? round2(itA.bonus_total) : 0 },
+      { label: 'Allowance Bónus', prev: itP ? round2(itP.allowance_bonus) : 0, curr: itA ? round2(itA.allowance_bonus) : 0 },
+      { label: 'Allowance Combustível', prev: itP ? round2(itP.allowance_combustivel) : 0, curr: itA ? round2(itA.allowance_combustivel) : 0 },
+      { label: 'Allowance Telefone', prev: itP ? round2(itP.allowance_telefone) : 0, curr: itA ? round2(itA.allowance_telefone) : 0 },
+      { label: 'Subsídio de Transporte', prev: itP ? round2(itP.subsidio_transporte_valor) : 0, curr: itA ? round2(itA.subsidio_transporte_valor) : 0 },
+      { label: 'Subsídio de Alimentação', prev: itP ? round2(itP.subsidio_alimentacao_valor) : 0, curr: itA ? round2(itA.subsidio_alimentacao_valor) : 0 },
+      { label: 'Férias', prev: itP ? round2(itP.ferias_pagamento_valor) : 0, curr: itA ? round2(itA.ferias_pagamento_valor) : 0 },
+      { label: 'Ajustes Positivos', prev: itP ? round2(itP.adjustment_plus) : 0, curr: itA ? round2(itA.adjustment_plus) : 0 },
+      { label: 'Total de Abonos (Bruto)', prev: prev_bruto, curr: curr_bruto },
+      { label: 'INSS Trabalhador', prev: itP ? round2(itP.inss_trabalhador) : 0, curr: itA ? round2(itA.inss_trabalhador) : 0 },
+      { label: 'IRPS', prev: itP ? round2(itP.irps) : 0, curr: itA ? round2(itA.irps) : 0 },
+      { label: 'Quota Sindical', prev: itP ? round2(itP.quota_sindical) : 0, curr: itA ? round2(itA.quota_sindical) : 0 },
+      { label: 'Ajustes Negativos', prev: itP ? round2(itP.adjustment_deduct) : 0, curr: itA ? round2(itA.adjustment_deduct) : 0 },
+      { label: 'Total de Descontos', prev: prev_descontos, curr: curr_descontos },
+      { label: 'Salário Líquido', prev: prev_liquido, curr: curr_liquido }
+    ];
+
+    const rubricas = rubricasCompara.map(r => {
+      const diff = round2(r.curr - r.prev);
+      const pct = r.prev > 0 ? round2((diff / r.prev) * 100) : (r.curr > 0 ? 100 : 0);
+      
+      let alert = 'green';
+      if (diff > 0.01) alert = 'red';
+      else if (diff < -0.01) alert = 'yellow';
+
+      return {
+        rubrica: r.label,
+        prev: r.prev,
+        curr: r.curr,
+        diff,
+        pct,
+        alert
+      };
+    });
+
     linhas.push({
       funcionario_id: id,
       codigo_interno: f.codigo_interno || '',
@@ -145,7 +210,8 @@ async function buildCompanyVarianceData({ empresaId, mes, ano }) {
       prev_liquido,
       curr_liquido,
       diff_liquido,
-      status
+      status,
+      rubricas
     });
   });
 
@@ -155,18 +221,19 @@ async function buildCompanyVarianceData({ empresaId, mes, ano }) {
   const countAnterior = itensAnterior.length;
   const countDiff = countAtual - countAnterior;
 
-  const totalBrutoAtual = folhaAtual ? round2(folhaAtual.total_bruto) : 0;
-  const totalBrutoAnterior = folhaAnterior ? round2(folhaAnterior.total_bruto) : 0;
+  // Totals calculated from matching items (department / cost center filtered)
+  const totalBrutoAtual = round2(itensAtual.reduce((sum, it) => sum + it.salario_total, 0));
+  const totalBrutoAnterior = round2(itensAnterior.reduce((sum, it) => sum + it.salario_total, 0));
   const diffBruto = round2(totalBrutoAtual - totalBrutoAnterior);
   const pctBruto = totalBrutoAnterior > 0 ? round2((diffBruto / totalBrutoAnterior) * 100) : (totalBrutoAtual > 0 ? 100 : 0);
 
-  const totalDescontosAtual = folhaAtual ? round2(folhaAtual.total_descontos) : 0;
-  const totalDescontosAnterior = folhaAnterior ? round2(folhaAnterior.total_descontos) : 0;
+  const totalDescontosAtual = round2(itensAtual.reduce((sum, it) => sum + it.descontos_total, 0));
+  const totalDescontosAnterior = round2(itensAnterior.reduce((sum, it) => sum + it.descontos_total, 0));
   const diffDescontos = round2(totalDescontosAtual - totalDescontosAnterior);
   const pctDescontos = totalDescontosAnterior > 0 ? round2((diffDescontos / totalDescontosAnterior) * 100) : (totalDescontosAtual > 0 ? 100 : 0);
 
-  const totalLiquidoAtual = folhaAtual ? round2(folhaAtual.total_liquido) : 0;
-  const totalLiquidoAnterior = folhaAnterior ? round2(folhaAnterior.total_liquido) : 0;
+  const totalLiquidoAtual = round2(itensAtual.reduce((sum, it) => sum + it.salario_liquido, 0));
+  const totalLiquidoAnterior = round2(itensAnterior.reduce((sum, it) => sum + it.salario_liquido, 0));
   const diffLiquido = round2(totalLiquidoAtual - totalLiquidoAnterior);
   const pctLiquido = totalLiquidoAnterior > 0 ? round2((diffLiquido / totalLiquidoAnterior) * 100) : (totalLiquidoAtual > 0 ? 100 : 0);
 
@@ -181,6 +248,10 @@ async function buildCompanyVarianceData({ empresaId, mes, ano }) {
       endereco: empresa.endereco || '',
       telefone: empresa.telefone || '',
       localidade: empresa.localidade || ''
+    },
+    filtros: {
+      subUnidadeId: subUnidadeId || '',
+      departamentoId: departamentoId || '',
     },
     periodo_selecionado: {
       mes: targetMes,

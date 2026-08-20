@@ -4,6 +4,7 @@ const Presenca = require('../models/presencaModel');
 const Falta = require('../models/faltaModel');
 const Ferias = require('../models/feriasModel');
 const FolhaPagamento = require('../models/folhaPagamentoModel');
+const SubUnidade = require('../models/subUnidadeModel');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const {
@@ -685,7 +686,9 @@ exports.getCompanyVariance = catchAsync(async (req, res, next) => {
   const data = await buildCompanyVarianceData({
     empresaId,
     mes: source.mes,
-    ano: source.ano
+    ano: source.ano,
+    subUnidadeId: source.sub_unidade_id || source.subUnidadeId,
+    departamentoId: source.departamento_id || source.departamentoId
   });
 
   res.status(200).json({
@@ -703,7 +706,9 @@ exports.getCompanyVariancePdf = catchAsync(async (req, res, next) => {
   const data = await buildCompanyVarianceData({
     empresaId,
     mes: source.mes,
-    ano: source.ano
+    ano: source.ano,
+    subUnidadeId: source.sub_unidade_id || source.subUnidadeId,
+    departamentoId: source.departamento_id || source.departamentoId
   });
   const buffer = await generateCompanyVariancePdf(data);
   const filename = `company-variance-${data.periodo_selecionado.mes}-${data.periodo_selecionado.ano}.pdf`;
@@ -721,7 +726,9 @@ exports.getCompanyVarianceExcel = catchAsync(async (req, res, next) => {
   const data = await buildCompanyVarianceData({
     empresaId,
     mes: source.mes,
-    ano: source.ano
+    ano: source.ano,
+    subUnidadeId: source.sub_unidade_id || source.subUnidadeId,
+    departamentoId: source.departamento_id || source.departamentoId
   });
   const buffer = await generateCompanyVarianceExcel(data);
   const filename = `company-variance-${data.periodo_selecionado.mes}-${data.periodo_selecionado.ano}.xlsx`;
@@ -797,4 +804,26 @@ exports.getAuditTrailExcel = catchAsync(async (req, res, next) => {
     filename,
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   );
+});
+
+/**
+ * GET /reports/filter-options
+ * Retorna departamentos e sub-unidades (centros de custo) de uma empresa
+ */
+exports.getFilterOptions = catchAsync(async (req, res, next) => {
+  const empresaId = resolveEmpresaId(req.user);
+  if (!empresaId) return next(new AppError('Empresa não associada', 400));
+
+  const [departamentos, subUnidades] = await Promise.all([
+    Departamento.find({ empresa_id: empresaId }).select('nome codigo'),
+    SubUnidade.find({ empresa_id: empresaId, estado: 'Ativo' }).select('nome codigo tipo')
+  ]);
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      departamentos,
+      subUnidades
+    }
+  });
 });

@@ -48,4 +48,6 @@ router.get('/audit-trail', reportController.getAuditTrail);
 router.get('/audit-trail/pdf', reportController.getAuditTrailPdf);
 router.get('/audit-trail/excel', reportController.getAuditTrailExcel);
 
+router.get('/filter-options', reportController.getFilterOptions);
+
 module.exports = router;
