@@ -40,6 +40,8 @@ const { generateCompanyVarianceExcel } = require('../utils/companyVarianceExcel'
 const { buildAuditTrailData } = require('../utils/auditTrailBuilder');
 const { generateAuditTrailPdf } = require('../utils/auditTrailPdf');
 const { generateAuditTrailExcel } = require('../utils/auditTrailExcel');
+const { buildGeneralLedgerData } = require('../utils/generalLedgerBuilder');
+const { generateGeneralLedgerExcel } = require('../utils/generalLedgerExcel');
 
 const MESES = [
   'Janeiro',
@@ -826,4 +828,25 @@ exports.getFilterOptions = catchAsync(async (req, res, next) => {
       subUnidades
     }
   });
+});
+
+/**
+ * GET /reports/general-ledger/excel
+ */
+exports.getGeneralLedgerExcel = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.method === 'GET' ? req.query : req.body;
+  const data = await buildGeneralLedgerData({
+    empresaId,
+    mes: source.mes,
+    ano: source.ano
+  });
+  const buffer = await generateGeneralLedgerExcel(data);
+  const filename = `general-ledger-${data.periodo.mes}-${data.periodo.ano}.xlsx`;
+  sendRelacaoNominalFile(
+    res,
+    buffer,
+    filename,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
 });
