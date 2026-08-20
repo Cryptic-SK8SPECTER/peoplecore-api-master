@@ -38,4 +38,14 @@ router.post(
 router.get('/sissmo-txt', reportController.getSissmoTxtPreview);
 router.get('/sissmo-txt/download', reportController.getSissmoTxtDownload);
 
+router.get('/company-variance', reportController.getCompanyVariance);
+router.get('/company-variance/pdf', reportController.getCompanyVariancePdf);
+router.post('/company-variance/pdf', reportController.postCompanyVariancePdf);
+router.get('/company-variance/excel', reportController.getCompanyVarianceExcel);
+router.post('/company-variance/excel', reportController.postCompanyVarianceExcel);
+
+router.get('/audit-trail', reportController.getAuditTrail);
+router.get('/audit-trail/pdf', reportController.getAuditTrailPdf);
+router.get('/audit-trail/excel', reportController.getAuditTrailExcel);
+
 module.exports = router;

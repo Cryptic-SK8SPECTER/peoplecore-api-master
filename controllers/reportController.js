@@ -33,6 +33,12 @@ const {
   buildSissmoTxtData,
   generateSissmoTxtBuffer,
 } = require('../utils/sissmoTxtExport');
+const { buildCompanyVarianceData } = require('../utils/companyVarianceBuilder');
+const { generateCompanyVariancePdf } = require('../utils/companyVariancePdf');
+const { generateCompanyVarianceExcel } = require('../utils/companyVarianceExcel');
+const { buildAuditTrailData } = require('../utils/auditTrailBuilder');
+const { generateAuditTrailPdf } = require('../utils/auditTrailPdf');
+const { generateAuditTrailExcel } = require('../utils/auditTrailExcel');
 
 const MESES = [
   'Janeiro',
@@ -667,4 +673,128 @@ exports.getSissmoTxtDownload = catchAsync(async (req, res, next) => {
 
   const buffer = generateSissmoTxtBuffer(data);
   sendRelacaoNominalFile(res, buffer, data.filename, 'text/plain; charset=utf-8');
+});
+
+/**
+ * GET /reports/company-variance?mes=&ano=
+ * Preview JSON do Comparativo Salarial
+ */
+exports.getCompanyVariance = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.method === 'GET' ? req.query : req.body;
+  const data = await buildCompanyVarianceData({
+    empresaId,
+    mes: source.mes,
+    ano: source.ano
+  });
+
+  res.status(200).json({
+    status: 'success',
+    data
+  });
+});
+
+/**
+ * GET /reports/company-variance/pdf
+ */
+exports.getCompanyVariancePdf = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.method === 'GET' ? req.query : req.body;
+  const data = await buildCompanyVarianceData({
+    empresaId,
+    mes: source.mes,
+    ano: source.ano
+  });
+  const buffer = await generateCompanyVariancePdf(data);
+  const filename = `company-variance-${data.periodo_selecionado.mes}-${data.periodo_selecionado.ano}.pdf`;
+  sendRelacaoNominalFile(res, buffer, filename, 'application/pdf');
+});
+
+exports.postCompanyVariancePdf = exports.getCompanyVariancePdf;
+
+/**
+ * GET /reports/company-variance/excel
+ */
+exports.getCompanyVarianceExcel = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.method === 'GET' ? req.query : req.body;
+  const data = await buildCompanyVarianceData({
+    empresaId,
+    mes: source.mes,
+    ano: source.ano
+  });
+  const buffer = await generateCompanyVarianceExcel(data);
+  const filename = `company-variance-${data.periodo_selecionado.mes}-${data.periodo_selecionado.ano}.xlsx`;
+  sendRelacaoNominalFile(
+    res,
+    buffer,
+    filename,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+});
+
+exports.postCompanyVarianceExcel = exports.getCompanyVarianceExcel;
+
+/**
+ * GET /reports/audit-trail
+ */
+exports.getAuditTrail = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.method === 'GET' ? req.query : req.body;
+  const data = await buildAuditTrailData({
+    empresaId,
+    modulo: source.modulo,
+    severidade: source.severidade,
+    dataInicio: source.data_inicio || source.dataInicio,
+    dataFim: source.data_fim || source.dataFim,
+    limite: source.limite
+  });
+
+  res.status(200).json({
+    status: 'success',
+    data
+  });
+});
+
+/**
+ * GET /reports/audit-trail/pdf
+ */
+exports.getAuditTrailPdf = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.method === 'GET' ? req.query : req.body;
+  const data = await buildAuditTrailData({
+    empresaId,
+    modulo: source.modulo,
+    severidade: source.severidade,
+    dataInicio: source.data_inicio || source.dataInicio,
+    dataFim: source.data_fim || source.dataFim,
+    limite: source.limite
+  });
+  const buffer = await generateAuditTrailPdf(data);
+  const filename = `audit-trail-${data.filtros.data_inicio.replace(/\//g, '-')}-a-${data.filtros.data_fim.replace(/\//g, '-')}.pdf`;
+  sendRelacaoNominalFile(res, buffer, filename, 'application/pdf');
+});
+
+/**
+ * GET /reports/audit-trail/excel
+ */
+exports.getAuditTrailExcel = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.method === 'GET' ? req.query : req.body;
+  const data = await buildAuditTrailData({
+    empresaId,
+    modulo: source.modulo,
+    severidade: source.severidade,
+    dataInicio: source.data_inicio || source.dataInicio,
+    dataFim: source.data_fim || source.dataFim,
+    limite: source.limite
+  });
+  const buffer = await generateAuditTrailExcel(data);
+  const filename = `audit-trail-${data.filtros.data_inicio.replace(/\//g, '-')}-a-${data.filtros.data_fim.replace(/\//g, '-')}.xlsx`;
+  sendRelacaoNominalFile(
+    res,
+    buffer,
+    filename,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
 });
