@@ -2,11 +2,13 @@
  * Garante um super-admin na base de dados (upsert).
  * Uso: node scripts/seed-super-admin.js
  */
+const dns = require('dns');
 const path = require('path');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const Usuario = require('../models/usuarioModel');
 
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 dotenv.config({ path: path.join(__dirname, '../config.env') });
 
 const DB = process.env.DATABASE?.replace('<PASSWORD>', process.env.DATABASE_PASSWORD);

@@ -1,4 +1,5 @@
 const Candidato = require('./../models/candidatoModel');
+const Candidatura = require('./../models/candidaturaModel');
 const Vaga = require('./../models/vagaModel');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
@@ -170,9 +171,28 @@ exports.getAllCandidatos = catchAsync(async (req, res, next) => {
     data: { data: docs }
   });
 });
-exports.getCandidato = factory.getOne(Candidato, [
-  { path: 'vaga_id', select: 'cargo departamento_id tipo_contrato' }
-]);
+exports.getCandidato = catchAsync(async (req, res, next) => {
+  const vagaIds = await Vaga.find({ empresa_id: req.user.empresa_id }).distinct('_id');
+  const candidato = await Candidato.findById(req.params.id);
+
+  if (!candidato) return next(new AppError('Candidato não encontrado', 404));
+
+  const pertence =
+    (candidato.vaga_id && vagaIds.some((id) => String(id) === String(candidato.vaga_id))) ||
+    (await Candidatura.exists({
+      candidato_id: candidato._id,
+      vaga_id: { $in: vagaIds },
+    }));
+
+  if (!pertence) return next(new AppError('Candidato não encontrado', 404));
+
+  const doc = await Candidato.findById(candidato._id).populate(
+    'vaga_id',
+    'cargo departamento_id tipo_contrato',
+  );
+
+  res.status(200).json({ status: 'success', data: { data: doc } });
+});
 exports.createCandidato = factory.createOne(Candidato);
 exports.updateCandidato = factory.updateOne(Candidato);
 exports.deleteCandidato = factory.deleteOne(Candidato);

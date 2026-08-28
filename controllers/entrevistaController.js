@@ -1,10 +1,17 @@
 const Entrevista = require('./../models/entrevistaModel');
 const Vaga = require('./../models/vagaModel');
 const Candidato = require('./../models/candidatoModel');
+const Candidatura = require('./../models/candidaturaModel');
 const Funcionario = require('./../models/funcionarioModel');
 const factory = require('./handlerFactory');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
+const {
+  registarTransicao,
+  FASE_PARA_STATUS,
+  STATUS_PARA_FASE,
+} = require('./../utils/recruitmentPipeline');
+const { getVagaIdsEmpresa } = require('./../utils/recruitmentTenant');
 
 // Middleware: filtra por empresa (via vagas da empresa)
 exports.filterByEmpresa = catchAsync(async (req, res, next) => {
@@ -15,7 +22,7 @@ exports.filterByEmpresa = catchAsync(async (req, res, next) => {
 
 // Verificar se vaga e candidato pertencem à empresa
 exports.verificarRelacoes = catchAsync(async (req, res, next) => {
-  const { vaga_id, candidato_id, entrevistador_id } = req.body;
+  const { vaga_id, candidato_id, candidatura_id, entrevistador_id, fase } = req.body;
 
   if (vaga_id) {
     const vaga = await Vaga.findOne({ _id: vaga_id, empresa_id: req.user.empresa_id });
@@ -25,14 +32,33 @@ exports.verificarRelacoes = catchAsync(async (req, res, next) => {
     }
   }
 
+  let candidatura = null;
+  if (candidatura_id) {
+    candidatura = await Candidatura.findById(candidatura_id);
+    if (!candidatura) return next(new AppError('Candidatura não encontrada', 404));
+    const vagaCand = await Vaga.findOne({ _id: candidatura.vaga_id, empresa_id: req.user.empresa_id });
+    if (!vagaCand) return next(new AppError('Candidatura não pertence a esta empresa', 403));
+    req.body.candidato_id = candidatura.candidato_id;
+    req.body.vaga_id = candidatura.vaga_id;
+    if (fase && FASE_PARA_STATUS[fase]) {
+      req.body.fase = fase;
+    }
+  }
+
   if (candidato_id) {
     const candidato = await Candidato.findById(candidato_id);
     if (!candidato) return next(new AppError('Candidato não encontrado', 404));
 
-    const vagaCandidato = await Vaga.findOne({ _id: candidato.vaga_id, empresa_id: req.user.empresa_id });
-    if (!vagaCandidato) return next(new AppError('Candidato não pertence a esta empresa', 403));
-    if (vaga_id && candidato.vaga_id.toString() !== vaga_id.toString()) {
-      return next(new AppError('Candidato não pertence à vaga selecionada', 400));
+    if (candidato.vaga_id) {
+      const vagaCandidato = await Vaga.findOne({ _id: candidato.vaga_id, empresa_id: req.user.empresa_id });
+      if (!vagaCandidato) return next(new AppError('Candidato não pertence a esta empresa', 403));
+      if (vaga_id && candidato.vaga_id.toString() !== vaga_id.toString()) {
+        return next(new AppError('Candidato não pertence à vaga selecionada', 400));
+      }
+    } else if (!candidatura) {
+      candidatura = await Candidatura.findOne({ candidato_id, vaga_id });
+      if (!candidatura) return next(new AppError('Candidatura não encontrada para este candidato', 404));
+      req.body.candidatura_id = candidatura._id;
     }
   }
 
@@ -206,6 +232,87 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   });
 });
 
+exports.registarFeedback = catchAsync(async (req, res, next) => {
+  const { scorecard, recomendacao, nota_geral, feedback } = req.body;
+  const vagaIds = (await getVagaIdsEmpresa(req.user.empresa_id)).map(String);
+
+  const entrevista = await Entrevista.findById(req.params.id);
+  if (!entrevista || !vagaIds.includes(entrevista.vaga_id.toString())) {
+    return next(new AppError('Entrevista não encontrada', 404));
+  }
+
+  if (scorecard) entrevista.scorecard = scorecard;
+  if (recomendacao) entrevista.recomendacao = recomendacao;
+  if (nota_geral) entrevista.nota_geral = nota_geral;
+  if (feedback) entrevista.feedback = feedback;
+  entrevista.status = 'Realizada';
+
+  await entrevista.save();
+
+  if (entrevista.candidatura_id) {
+    const candidatura = await Candidatura.findById(entrevista.candidatura_id);
+    if (candidatura) {
+      if (recomendacao === 'nao') {
+        await registarTransicao({
+          candidatura,
+          de: candidatura.status,
+          para: 'rejeitado',
+          usuarioId: req.user.id,
+          empresaId: req.user.empresa_id,
+          motivo: `Recomendação negativa na entrevista ${entrevista.fase}`,
+          req,
+        });
+        candidatura.estagio_feedback = 'II';
+        await candidatura.save();
+      } else if (recomendacao === 'sim') {
+        const esperado = STATUS_PARA_FASE[candidatura.status];
+        if (esperado === entrevista.fase) {
+          const candidato = await Candidato.findById(entrevista.candidato_id);
+          if (candidato) {
+            candidato.status = 'Entrevistado';
+            await candidato.save({ validateBeforeSave: false });
+          }
+        }
+      }
+    }
+  }
+
+  res.status(200).json({ status: 'success', data: { data: entrevista } });
+});
+
+exports.reagendar = catchAsync(async (req, res, next) => {
+  const { data, hora, link_reuniao, local } = req.body;
+  const vagaIds = (await getVagaIdsEmpresa(req.user.empresa_id)).map(String);
+
+  const entrevista = await Entrevista.findById(req.params.id);
+  if (!entrevista || !vagaIds.includes(entrevista.vaga_id.toString())) {
+    return next(new AppError('Entrevista não encontrada', 404));
+  }
+
+  if (data) entrevista.data = new Date(data);
+  if (hora) entrevista.hora = hora;
+  if (link_reuniao) entrevista.link_reuniao = link_reuniao;
+  if (local) entrevista.local = local;
+  entrevista.status = 'Reagendada';
+  await entrevista.save();
+
+  res.status(200).json({ status: 'success', data: { data: entrevista } });
+});
+
+exports.cancelar = catchAsync(async (req, res, next) => {
+  const vagaIds = (await getVagaIdsEmpresa(req.user.empresa_id)).map(String);
+  const entrevista = await Entrevista.findById(req.params.id);
+  if (!entrevista || !vagaIds.includes(entrevista.vaga_id.toString())) {
+    return next(new AppError('Entrevista não encontrada', 404));
+  }
+
+  entrevista.status = 'Cancelada';
+  if (req.body.motivo) entrevista.feedback = req.body.motivo;
+  await entrevista.save();
+
+  res.status(200).json({ status: 'success', data: { data: entrevista } });
+});
+
 // CRUD padrão via factory
 exports.getAllEntrevistas = catchAsync(async (req, res, next) => {
   const vagas = await Vaga.find({ empresa_id: req.user.empresa_id }).select('_id');
@@ -227,11 +334,20 @@ exports.getAllEntrevistas = catchAsync(async (req, res, next) => {
     data: { data: docs }
   });
 });
-exports.getEntrevista = factory.getOne(Entrevista, [
-  { path: 'candidato_id', select: 'nome email telefone status' },
-  { path: 'vaga_id', select: 'cargo departamento_id tipo_contrato' },
-  { path: 'entrevistador_id', select: 'nome email' }
-]);
+exports.getEntrevista = catchAsync(async (req, res, next) => {
+  const vagaIds = (await getVagaIdsEmpresa(req.user.empresa_id)).map(String);
+  const doc = await Entrevista.findById(req.params.id)
+    .populate('candidato_id', 'nome email telefone status')
+    .populate('vaga_id', 'cargo departamento_id tipo_contrato')
+    .populate('entrevistador_id', 'nome email')
+    .populate('candidatura_id');
+
+  if (!doc || !vagaIds.includes(doc.vaga_id.toString())) {
+    return next(new AppError('Entrevista não encontrada', 404));
+  }
+
+  res.status(200).json({ status: 'success', data: { data: doc } });
+});
 exports.createEntrevista = factory.createOne(Entrevista);
 exports.updateEntrevista = factory.updateOne(Entrevista);
 exports.deleteEntrevista = factory.deleteOne(Entrevista);

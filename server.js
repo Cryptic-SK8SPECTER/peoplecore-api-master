@@ -82,6 +82,16 @@ cron.schedule('0 * * * *', async () => {
   await runExpirySync();
 });
 
+// SLA de feedback de recrutamento — diário às 08:00
+cron.schedule('0 8 * * *', async () => {
+  try {
+    const { processarSlaRecrutamento } = require('./utils/recruitmentSla');
+    await processarSlaRecrutamento();
+  } catch (err) {
+    console.error('[sla-recruitment] erro:', err.message);
+  }
+});
+
 // Cron job para marcar faltas automaticamente às 18:00 todos os dias
 cron.schedule('0 18 * * *', async () => {
   console.log('Executando job de marcação automática de faltas...');

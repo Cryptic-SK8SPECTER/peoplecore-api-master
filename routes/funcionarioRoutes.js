@@ -1,6 +1,7 @@
 const express = require('express');
 const funcionarioController = require('./../controllers/funcionarioController');
 const authController = require('./../controllers/authController');
+const ocrController = require('./../controllers/ocrController');
 
 const router = express.Router();
 
@@ -41,6 +42,9 @@ router.patch(
 router.use(authController.checkPermissaoModulo('Funcionários'));
 
 router.get('/estatisticas', funcionarioController.getEstatisticas);
+
+router.post('/ocr/cv', ...ocrController.extractEmployee);
+router.post('/ocr/extract-employee', ...ocrController.extractEmployee);
 
 router.get('/import/template', funcionarioController.downloadImportTemplate);
 router.post(

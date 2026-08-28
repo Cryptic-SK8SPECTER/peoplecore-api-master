@@ -11,7 +11,10 @@ router.get('/estatisticas', authController.checkPermissaoModulo('Recrutamento'),
 router.get('/agenda', authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']), entrevistaController.getByData);
 router.get('/candidato/:candidatoId', authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']), entrevistaController.getByCandidato);
 router.get('/entrevistador/:entrevistadorId', authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']), entrevistaController.getByEntrevistador);
-router.patch('/:id/status', authController.checkPermissaoQualquer(['Presenças','ver'],['Férias','ver'],['Avaliações','ver'],['Recrutamento','ver'],['Funcionários','ver']), entrevistaController.alterarStatus);
+router.patch('/:id/status', authController.checkPermissaoModulo('Recrutamento'), entrevistaController.alterarStatus);
+router.patch('/:id/feedback', authController.checkPermissaoModulo('Recrutamento'), entrevistaController.registarFeedback);
+router.patch('/:id/reagendar', authController.checkPermissaoModulo('Recrutamento'), entrevistaController.reagendar);
+router.patch('/:id/cancelar', authController.checkPermissaoModulo('Recrutamento'), entrevistaController.cancelar);
 
 // CRUD padrão
 router

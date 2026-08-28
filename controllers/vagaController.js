@@ -22,10 +22,34 @@ exports.getAllVagas = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.getVaga = factory.getOne(Vaga, [
-  { path: 'departamento_id', select: 'nome' },
-  { path: 'cargo_id', select: 'nome titulo departamento_id' }
-]);
+exports.getVaga = catchAsync(async (req, res, next) => {
+  const doc = await Vaga.findOne({
+    _id: req.params.id,
+    empresa_id: req.user.empresa_id,
+  })
+    .populate('departamento_id', 'nome')
+    .populate('cargo_id', 'nome titulo departamento_id');
+
+  if (!doc) return next(new AppError('Vaga não encontrada', 404));
+
+  res.status(200).json({ status: 'success', data: { data: doc } });
+});
 exports.createVaga = factory.createOne(Vaga);
-exports.updateVaga = factory.updateOne(Vaga);
-exports.deleteVaga = factory.deleteOne(Vaga);
+exports.updateVaga = catchAsync(async (req, res, next) => {
+  const doc = await Vaga.findOneAndUpdate(
+    { _id: req.params.id, empresa_id: req.user.empresa_id },
+    req.body,
+    { new: true, runValidators: true },
+  );
+  if (!doc) return next(new AppError('Vaga não encontrada', 404));
+  res.status(200).json({ status: 'success', data: { data: doc } });
+});
+
+exports.deleteVaga = catchAsync(async (req, res, next) => {
+  const doc = await Vaga.findOneAndDelete({
+    _id: req.params.id,
+    empresa_id: req.user.empresa_id,
+  });
+  if (!doc) return next(new AppError('Vaga não encontrada', 404));
+  res.status(204).json({ status: 'success', data: null });
+});

@@ -40,6 +40,11 @@ const candidatoRouter = require('./routes/candidatoRoutes');
 const entrevistaRouter = require('./routes/entrevistaRoutes');
 const vagaRouter = require('./routes/vagaRoutes');
 const contratacaoRouter = require('./routes/contratacaoRoutes');
+const candidaturaRouter = require('./routes/candidaturaRoutes');
+const propostaRouter = require('./routes/propostaRoutes');
+const onboardingRouter = require('./routes/onboardingRoutes');
+const publicRecruitmentRouter = require('./routes/publicRecruitmentRoutes');
+const ocrRouter = require('./routes/ocrRoutes');
 const documentoRouter = require('./routes/documentoRoutes');
 const beneficioRouter = require('./routes/beneficioRoutes');
 const beneficioFuncionarioRouter = require('./routes/beneficioFuncionarioRoutes');
@@ -225,6 +230,17 @@ app.use('/api/v1/usuarios/signup', authLimiter);
 app.use('/api/v1/usuarios/forgotPassword', authLimiter);
 app.use('/api', speedLimiter);
 
+// Rotas públicas de recrutamento (sem JWT)
+const publicRecruitmentLimiter = rateLimit({
+  max: process.env.NODE_ENV === 'development' ? 999999 : 30,
+  windowMs: 15 * 60 * 1000,
+  message: { status: 'error', message: 'Too many requests, try again later.' },
+  skip: (req) => process.env.NODE_ENV === 'development',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/v1/publico', publicRecruitmentLimiter, publicRecruitmentRouter);
+
 // Body parser
 app.use(
   express.json({
@@ -314,6 +330,11 @@ app.use('/api/v1/usuarios', usuarioRouter);
 app.use('/api/v1/empresas', empresaRouter);
 app.use('/api/v1/subempresas', subempresaRouter);
 
+// ─── OCR (CV — Google AI Studio / Gemini) ───────────────────
+app.use('/api/v1/ocr', ocrRouter);
+// Compat: frontends que fazem proxy para /api/ocr/* (sem /v1)
+app.use('/api/ocr', ocrRouter);
+
 // ─── Funcionários ─────────────────────────────────────────────
 app.use('/api/v1/funcionarios', funcionarioRouter);
 app.use('/api/v1/departamentos', departamentoRouter);
@@ -350,8 +371,11 @@ app.use('/api/v1/recibos', reciboRouter);
 // ─── Recrutamento ─────────────────────────────────────────────
 app.use('/api/v1/vagas', vagaRouter);
 app.use('/api/v1/candidatos', candidatoRouter);
+app.use('/api/v1/candidaturas', candidaturaRouter);
 app.use('/api/v1/entrevistas', entrevistaRouter);
 app.use('/api/v1/contratacoes', contratacaoRouter);
+app.use('/api/v1/propostas', propostaRouter);
+app.use('/api/v1/onboardings', onboardingRouter);
 
 // ─── Benefícios ───────────────────────────────────────────────
 app.use('/api/v1/beneficios', beneficioRouter);
