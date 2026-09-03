@@ -163,20 +163,17 @@ if (process.env.NODE_ENV === 'development') {
   app.set('trust proxy', false);
 }
 
-// Rate limiting geral para API
+// Rate limiting geral para API (DESATIVADO TEMPORARIAMENTE)
 const limiter = rateLimit({
-  max:
-    process.env.NODE_ENV === 'development'
-      ? 999999
-      : process.env.RATE_LIMIT_MAX || 100,
-  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 999999,
+  windowMs: 60 * 60 * 1000,
   message: {
     status: 'error',
     message: 'Too many requests from this IP, please try again in an hour!',
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => process.env.NODE_ENV === 'development', // Pular rate limit em desenvolvimento
+  skip: () => true, // Desativado
   handler: (req, res) => {
     res.status(429).json({
       status: 'error',
@@ -185,12 +182,9 @@ const limiter = rateLimit({
   },
 });
 
-// Rate limiting para autenticação
+// Rate limiting para autenticação (DESATIVADO TEMPORARIAMENTE)
 const authLimiter = rateLimit({
-  max:
-    process.env.NODE_ENV === 'development'
-      ? 999999
-      : process.env.AUTH_RATE_LIMIT_MAX || 5,
+  max: 999999,
   windowMs: 15 * 60 * 1000,
   message: {
     status: 'error',
@@ -198,12 +192,12 @@ const authLimiter = rateLimit({
       'Too many login attempts from this IP, please try again after 15 minutes!',
   },
   skipSuccessfulRequests: true,
-  skip: (req) => process.env.NODE_ENV === 'development', // Pular rate limit em desenvolvimento
+  skip: () => true, // Desativado
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Slow down
+// Slow down (DESATIVADO TEMPORARIAMENTE)
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000,
   delayAfter: 50,
@@ -211,7 +205,7 @@ const speedLimiter = slowDown({
     const delayAfter = req.slowDown.limit;
     return (used - delayAfter) * 500;
   },
-  skip: (req) => process.env.NODE_ENV === 'development', // Pular em desenvolvimento
+  skip: () => true, // Desativado
   validate: { trustProxy: false },
 });
 
@@ -224,22 +218,23 @@ app.head('/health', (req, res) => {
   res.status(200).end();
 });
 
-app.use('/api', limiter);
-app.use('/api/v1/usuarios/login', authLimiter);
-app.use('/api/v1/usuarios/signup', authLimiter);
-app.use('/api/v1/usuarios/forgotPassword', authLimiter);
-app.use('/api', speedLimiter);
+// Middlewares de rate limiting comentados temporariamente
+// app.use('/api', limiter);
+// app.use('/api/v1/usuarios/login', authLimiter);
+// app.use('/api/v1/usuarios/signup', authLimiter);
+// app.use('/api/v1/usuarios/forgotPassword', authLimiter);
+// app.use('/api', speedLimiter);
 
 // Rotas públicas de recrutamento (sem JWT)
 const publicRecruitmentLimiter = rateLimit({
-  max: process.env.NODE_ENV === 'development' ? 999999 : 30,
+  max: 999999,
   windowMs: 15 * 60 * 1000,
   message: { status: 'error', message: 'Too many requests, try again later.' },
-  skip: (req) => process.env.NODE_ENV === 'development',
+  skip: () => true, // Desativado
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use('/api/v1/publico', publicRecruitmentLimiter, publicRecruitmentRouter);
+app.use('/api/v1/publico', publicRecruitmentRouter);
 
 // Body parser
 app.use(
