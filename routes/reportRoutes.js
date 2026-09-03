@@ -49,6 +49,22 @@ router.get('/audit-trail/pdf', reportController.getAuditTrailPdf);
 router.get('/audit-trail/excel', reportController.getAuditTrailExcel);
 
 router.get('/filter-options', reportController.getFilterOptions);
+router.get('/general-ledger', reportController.getGeneralLedgerData);
 router.get('/general-ledger/excel', reportController.getGeneralLedgerExcel);
+
+router.get('/net-pay', reportController.getNetPay);
+router.get('/net-pay/excel', reportController.getNetPayExcel);
+
+router.get('/irps-annual', reportController.getIrpsAnnual);
+router.get('/irps-annual/excel', reportController.getIrpsAnnualExcel);
+
+router.get('/total-cost-to-company', reportController.getTotalCostToCompany);
+router.get('/total-cost-to-company/excel', reportController.getTotalCostToCompanyExcel);
+
+router.get('/employee-12-month', reportController.getEmployee12Month);
+router.get('/employee-12-month/excel', reportController.getEmployee12MonthExcel);
+
+router.get('/headcount', reportController.getHeadcount);
+router.get('/headcount/excel', reportController.getHeadcountExcel);
 
 module.exports = router;

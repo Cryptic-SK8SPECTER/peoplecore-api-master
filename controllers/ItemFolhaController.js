@@ -124,8 +124,10 @@ exports.getRecibo = catchAsync(async (req, res, next) => {
 exports.getEstatisticasByFolha = catchAsync(async (req, res, next) => {
   const mongoose = require('mongoose');
 
+  const folhaObjId = new mongoose.Types.ObjectId(String(req.params.folhaId));
+
   const resumo = await ItemFolha.aggregate([
-    { $match: { folha_id: mongoose.Types.ObjectId(req.params.folhaId) } },
+    { $match: { folha_id: folhaObjId } },
     {
       $group: {
         _id: '$status',
@@ -140,7 +142,7 @@ exports.getEstatisticasByFolha = catchAsync(async (req, res, next) => {
   ]);
 
   const totais = await ItemFolha.aggregate([
-    { $match: { folha_id: mongoose.Types.ObjectId(req.params.folhaId) } },
+    { $match: { folha_id: folhaObjId } },
     {
       $group: {
         _id: null,

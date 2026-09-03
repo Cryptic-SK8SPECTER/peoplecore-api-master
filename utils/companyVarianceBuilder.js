@@ -3,6 +3,7 @@ const Funcionario = require('../models/funcionarioModel');
 const FolhaPagamento = require('../models/folhaPagamentoModel');
 const ItemFolha = require('../models/itemFolhaModel');
 const AppError = require('./appError');
+const { RUBRICAS_PADRAO } = require('./rubricasParametros');
 
 const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -157,45 +158,53 @@ async function buildCompanyVarianceData({ empresaId, mes, ano, subUnidadeId, dep
       status = 'Alterado';
     }
 
-    // Comparison for all individual rubrics
-    const rubricasCompara = [
-      { label: 'Salário Base', prev: itP ? round2(itP.salario_base) : 0, curr: itA ? round2(itA.salario_base) : 0 },
-      { label: 'Horas Extras', prev: itP ? round2(itP.horas_extras_valor) : 0, curr: itA ? round2(itA.horas_extras_valor) : 0 },
-      { label: 'Turno Noturno', prev: itP ? round2(itP.salario_noturno) : 0, curr: itA ? round2(itA.salario_noturno) : 0 },
-      { label: 'Bónus e Comissões', prev: itP ? round2(itP.bonus_total) : 0, curr: itA ? round2(itA.bonus_total) : 0 },
-      { label: 'Allowance Bónus', prev: itP ? round2(itP.allowance_bonus) : 0, curr: itA ? round2(itA.allowance_bonus) : 0 },
-      { label: 'Allowance Combustível', prev: itP ? round2(itP.allowance_combustivel) : 0, curr: itA ? round2(itA.allowance_combustivel) : 0 },
-      { label: 'Allowance Telefone', prev: itP ? round2(itP.allowance_telefone) : 0, curr: itA ? round2(itA.allowance_telefone) : 0 },
-      { label: 'Subsídio de Transporte', prev: itP ? round2(itP.subsidio_transporte_valor) : 0, curr: itA ? round2(itA.subsidio_transporte_valor) : 0 },
-      { label: 'Subsídio de Alimentação', prev: itP ? round2(itP.subsidio_alimentacao_valor) : 0, curr: itA ? round2(itA.subsidio_alimentacao_valor) : 0 },
-      { label: 'Férias', prev: itP ? round2(itP.ferias_pagamento_valor) : 0, curr: itA ? round2(itA.ferias_pagamento_valor) : 0 },
-      { label: 'Ajustes Positivos', prev: itP ? round2(itP.adjustment_plus) : 0, curr: itA ? round2(itA.adjustment_plus) : 0 },
-      { label: 'Total de Abonos (Bruto)', prev: prev_bruto, curr: curr_bruto },
-      { label: 'INSS Trabalhador', prev: itP ? round2(itP.inss_trabalhador) : 0, curr: itA ? round2(itA.inss_trabalhador) : 0 },
-      { label: 'IRPS', prev: itP ? round2(itP.irps) : 0, curr: itA ? round2(itA.irps) : 0 },
-      { label: 'Quota Sindical', prev: itP ? round2(itP.quota_sindical) : 0, curr: itA ? round2(itA.quota_sindical) : 0 },
-      { label: 'Ajustes Negativos', prev: itP ? round2(itP.adjustment_deduct) : 0, curr: itA ? round2(itA.adjustment_deduct) : 0 },
-      { label: 'Total de Descontos', prev: prev_descontos, curr: curr_descontos },
-      { label: 'Salário Líquido', prev: prev_liquido, curr: curr_liquido }
-    ];
+    // Comparação de todas as rúbricas padronizadas de Moçambique (Imagens Dra. Edma)
+    const rubricasList = RUBRICAS_PADRAO.map(rb => {
+      const prevVal = itP ? round2(rb.extraiValor(itP)) : 0;
+      const currVal = itA ? round2(rb.extraiValor(itA)) : 0;
+      const diffVal = round2(currVal - prevVal);
+      const pct = prevVal > 0 ? round2((diffVal / prevVal) * 100) : (currVal > 0 ? 100 : 0);
 
-    const rubricas = rubricasCompara.map(r => {
-      const diff = round2(r.curr - r.prev);
-      const pct = r.prev > 0 ? round2((diff / r.prev) * 100) : (r.curr > 0 ? 100 : 0);
-      
       let alert = 'green';
-      if (diff > 0.01) alert = 'red';
-      else if (diff < -0.01) alert = 'yellow';
+      let observacao = 'Manteve';
+      if (diffVal > 0.01) {
+        alert = 'red';
+        observacao = 'Aumento';
+      } else if (diffVal < -0.01) {
+        alert = 'yellow';
+        observacao = 'Redução';
+      }
 
       return {
-        rubrica: r.label,
-        prev: r.prev,
-        curr: r.curr,
-        diff,
+        codigo: rb.codigo,
+        descricao: rb.descricao,
+        rubrica: rb.descricao,
+        tipo: rb.tipo,
+        prev: prevVal,
+        curr: currVal,
+        diff: diffVal,
         pct,
-        alert
+        alert,
+        observacao
       };
     });
+
+    // Adicionar Total Funcionário no final do bloco do colaborador
+    const diffTot = round2(curr_liquido - prev_liquido);
+    rubricasList.push({
+      codigo: 'TOT',
+      descricao: 'Total Funcionário',
+      rubrica: 'Total Funcionário',
+      tipo: 'total',
+      prev: prev_liquido,
+      curr: curr_liquido,
+      diff: diffTot,
+      pct: prev_liquido > 0 ? round2((diffTot / prev_liquido) * 100) : (curr_liquido > 0 ? 100 : 0),
+      alert: diffTot > 0.01 ? 'red' : (diffTot < -0.01 ? 'yellow' : 'green'),
+      observacao: diffTot === 0 ? 'Manteve' : (diffTot > 0 ? 'Aumento' : 'Redução')
+    });
+
+    const rubricas = rubricasList;
 
     linhas.push({
       funcionario_id: id,

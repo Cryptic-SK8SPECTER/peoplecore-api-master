@@ -164,9 +164,19 @@ exports.aplicarRecorrentes = catchAsync(async (req, res, next) => {
 // Estatísticas
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const mongoose = require('mongoose');
+  const empresaId = req.user?.empresa_id || req.query?.empresa_id;
+
+  if (!empresaId) {
+    return res.status(200).json({
+      status: 'success',
+      data: { porTipo: [], porMes: [], porStatus: [] }
+    });
+  }
+
+  const empresaObjId = new mongoose.Types.ObjectId(String(empresaId));
 
   const porTipo = await Desconto.aggregate([
-    { $match: { empresa_id: mongoose.Types.ObjectId(req.user.empresa_id) } },
+    { $match: { empresa_id: empresaObjId } },
     {
       $group: {
         _id: '$tipo',
@@ -181,7 +191,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const porMes = await Desconto.aggregate([
     {
       $match: {
-        empresa_id: mongoose.Types.ObjectId(req.user.empresa_id),
+        empresa_id: empresaObjId,
         status: 'Aplicado'
       }
     },
@@ -197,7 +207,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   ]);
 
   const porStatus = await Desconto.aggregate([
-    { $match: { empresa_id: mongoose.Types.ObjectId(req.user.empresa_id) } },
+    { $match: { empresa_id: empresaObjId } },
     {
       $group: {
         _id: '$status',

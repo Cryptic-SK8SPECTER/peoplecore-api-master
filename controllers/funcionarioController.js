@@ -265,10 +265,22 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
 
 // Estatísticas de funcionários da empresa
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
+  const mongoose = require('mongoose');
+  const empresaId = req.user?.empresa_id || req.query?.empresa_id;
+
+  if (!empresaId) {
+    return res.status(200).json({
+      status: 'success',
+      data: { stats: [], porDepartamento: [] },
+    });
+  }
+
+  const empresaObjId = new mongoose.Types.ObjectId(String(empresaId));
+
   const stats = await Funcionario.aggregate([
     {
       $match: {
-        empresa_id: require('mongoose').Types.ObjectId(req.user.empresa_id),
+        empresa_id: empresaObjId,
       },
     },
     {
@@ -282,7 +294,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const porDepartamento = await Funcionario.aggregate([
     {
       $match: {
-        empresa_id: require('mongoose').Types.ObjectId(req.user.empresa_id),
+        empresa_id: empresaObjId,
         status: 'Ativo',
       },
     },

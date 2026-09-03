@@ -86,8 +86,10 @@ exports.submeterAvaliacao = catchAsync(async (req, res, next) => {
 
 // Estatísticas de uma avaliação
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
+  const mongoose = require('mongoose');
+  const avaliacaoObjId = new mongoose.Types.ObjectId(String(req.params.avaliacaoId));
   const stats = await AvaliacaoFuncionario.aggregate([
-    { $match: { avaliacao_id: require('mongoose').Types.ObjectId(req.params.avaliacaoId) } },
+    { $match: { avaliacao_id: avaliacaoObjId } },
     {
       $group: {
         _id: '$status',

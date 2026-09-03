@@ -93,10 +93,22 @@ exports.toggleAtivo = catchAsync(async (req, res, next) => {
 
 // Estatísticas de cargos
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
+  const mongoose = require('mongoose');
+  const empresaId = req.user?.empresa_id || req.query?.empresa_id;
+
+  if (!empresaId) {
+    return res.status(200).json({
+      status: 'success',
+      data: { porNivel: [], porDepartamento: [] },
+    });
+  }
+
+  const empresaObjId = new mongoose.Types.ObjectId(String(empresaId));
+
   const porNivel = await Cargo.aggregate([
     {
       $match: {
-        empresa_id: require('mongoose').Types.ObjectId(req.user.empresa_id),
+        empresa_id: empresaObjId,
       },
     },
     {
@@ -112,7 +124,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const porDepartamento = await Cargo.aggregate([
     {
       $match: {
-        empresa_id: require('mongoose').Types.ObjectId(req.user.empresa_id),
+        empresa_id: empresaObjId,
         ativo: true,
       },
     },

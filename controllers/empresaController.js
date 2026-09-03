@@ -243,10 +243,13 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
     status: 'Ativo',
   });
 
+  const mongoose = require('mongoose');
+  const empresaObjId = req.user.empresa_id ? new mongoose.Types.ObjectId(String(req.user.empresa_id)) : null;
+
   const porDepartamento = await Funcionario.aggregate([
     {
       $match: {
-        empresa_id: require('mongoose').Types.ObjectId(req.user.empresa_id),
+        empresa_id: empresaObjId,
         status: 'Ativo',
       },
     },
@@ -277,7 +280,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const porStatus = await Funcionario.aggregate([
     {
       $match: {
-        empresa_id: require('mongoose').Types.ObjectId(req.user.empresa_id),
+        empresa_id: empresaObjId,
       },
     },
     {

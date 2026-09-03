@@ -42,6 +42,20 @@ const { generateAuditTrailPdf } = require('../utils/auditTrailPdf');
 const { generateAuditTrailExcel } = require('../utils/auditTrailExcel');
 const { buildGeneralLedgerData } = require('../utils/generalLedgerBuilder');
 const { generateGeneralLedgerExcel } = require('../utils/generalLedgerExcel');
+const {
+  buildNetPayReportData,
+  buildIrpsReportData,
+  buildTotalCostToCompanyData,
+  buildEmployee12MonthData
+} = require('../utils/payrollAnnualReportsBuilder');
+const {
+  generateNetPayExcel,
+  generateIrpsExcel,
+  generateTotalCostToCompanyExcel,
+  generateEmployee12MonthExcel
+} = require('../utils/payrollAnnualReportsExcel');
+const { buildHeadcountReportData } = require('../utils/headcountReportBuilder');
+const { generateHeadcountExcel } = require('../utils/headcountReportExcel');
 
 const MESES = [
   'Janeiro',
@@ -831,6 +845,25 @@ exports.getFilterOptions = catchAsync(async (req, res, next) => {
 });
 
 /**
+ * GET /reports/general-ledger/preview
+ */
+exports.getGeneralLedgerData = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.method === 'GET' ? req.query : req.body;
+  const data = await buildGeneralLedgerData({
+    empresaId,
+    mes: source.mes,
+    ano: source.ano,
+    subUnidadeId: source.sub_unidade_id || source.subUnidadeId,
+    departamentoId: source.departamento_id || source.departamentoId
+  });
+  res.status(200).json({
+    status: 'success',
+    data
+  });
+});
+
+/**
  * GET /reports/general-ledger/excel
  */
 exports.getGeneralLedgerExcel = catchAsync(async (req, res, next) => {
@@ -839,10 +872,12 @@ exports.getGeneralLedgerExcel = catchAsync(async (req, res, next) => {
   const data = await buildGeneralLedgerData({
     empresaId,
     mes: source.mes,
-    ano: source.ano
+    ano: source.ano,
+    subUnidadeId: source.sub_unidade_id || source.subUnidadeId,
+    departamentoId: source.departamento_id || source.departamentoId
   });
   const buffer = await generateGeneralLedgerExcel(data);
-  const filename = `general-ledger-${data.periodo.mes}-${data.periodo.ano}.xlsx`;
+  const filename = `general-ledger-${data.periodo.ano}.xlsx`;
   sendRelacaoNominalFile(
     res,
     buffer,
@@ -850,3 +885,180 @@ exports.getGeneralLedgerExcel = catchAsync(async (req, res, next) => {
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   );
 });
+
+/**
+ * GET /reports/net-pay
+ */
+exports.getNetPay = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.query;
+  const data = await buildNetPayReportData({
+    empresaId,
+    ano: source.ano,
+    subUnidadeId: source.sub_unidade_id,
+    departamentoId: source.departamento_id
+  });
+  res.status(200).json({ status: 'success', data });
+});
+
+/**
+ * GET /reports/net-pay/excel
+ */
+exports.getNetPayExcel = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.query;
+  const data = await buildNetPayReportData({
+    empresaId,
+    ano: source.ano,
+    subUnidadeId: source.sub_unidade_id,
+    departamentoId: source.departamento_id
+  });
+  const buffer = await generateNetPayExcel(data);
+  sendRelacaoNominalFile(
+    res,
+    buffer,
+    `net-pay-report-${data.ano}.xlsx`,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+});
+
+/**
+ * GET /reports/irps-annual
+ */
+exports.getIrpsAnnual = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.query;
+  const data = await buildIrpsReportData({
+    empresaId,
+    ano: source.ano,
+    subUnidadeId: source.sub_unidade_id,
+    departamentoId: source.departamento_id
+  });
+  res.status(200).json({ status: 'success', data });
+});
+
+/**
+ * GET /reports/irps-annual/excel
+ */
+exports.getIrpsAnnualExcel = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.query;
+  const data = await buildIrpsReportData({
+    empresaId,
+    ano: source.ano,
+    subUnidadeId: source.sub_unidade_id,
+    departamentoId: source.departamento_id
+  });
+  const buffer = await generateIrpsExcel(data);
+  sendRelacaoNominalFile(
+    res,
+    buffer,
+    `irps-report-${data.ano}.xlsx`,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+});
+
+/**
+ * GET /reports/total-cost-to-company
+ */
+exports.getTotalCostToCompany = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.query;
+  const data = await buildTotalCostToCompanyData({
+    empresaId,
+    ano: source.ano,
+    subUnidadeId: source.sub_unidade_id,
+    departamentoId: source.departamento_id
+  });
+  res.status(200).json({ status: 'success', data });
+});
+
+/**
+ * GET /reports/total-cost-to-company/excel
+ */
+exports.getTotalCostToCompanyExcel = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.query;
+  const data = await buildTotalCostToCompanyData({
+    empresaId,
+    ano: source.ano,
+    subUnidadeId: source.sub_unidade_id,
+    departamentoId: source.departamento_id
+  });
+  const buffer = await generateTotalCostToCompanyExcel(data);
+  sendRelacaoNominalFile(
+    res,
+    buffer,
+    `total-cost-to-company-${data.ano}.xlsx`,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+});
+
+/**
+ * GET /reports/employee-12-month
+ */
+exports.getEmployee12Month = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.query;
+  const data = await buildEmployee12MonthData({
+    empresaId,
+    ano: source.ano,
+    funcionarioId: source.funcionario_id
+  });
+  res.status(200).json({ status: 'success', data });
+});
+
+/**
+ * GET /reports/employee-12-month/excel
+ */
+exports.getEmployee12MonthExcel = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.query;
+  const data = await buildEmployee12MonthData({
+    empresaId,
+    ano: source.ano,
+    funcionarioId: source.funcionario_id
+  });
+  const buffer = await generateEmployee12MonthExcel(data);
+  sendRelacaoNominalFile(
+    res,
+    buffer,
+    `employee-12-month-${data.ano}.xlsx`,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+});
+
+/**
+ * GET /reports/headcount
+ */
+exports.getHeadcount = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.query;
+  const data = await buildHeadcountReportData({
+    empresaId,
+    subUnidadeId: source.sub_unidade_id,
+    departamentoId: source.departamento_id
+  });
+  res.status(200).json({ status: 'success', data });
+});
+
+/**
+ * GET /reports/headcount/excel
+ */
+exports.getHeadcountExcel = catchAsync(async (req, res, next) => {
+  const empresaId = resolveRelacaoEmpresaId(req);
+  const source = req.query;
+  const data = await buildHeadcountReportData({
+    empresaId,
+    subUnidadeId: source.sub_unidade_id,
+    departamentoId: source.departamento_id
+  });
+  const buffer = await generateHeadcountExcel(data);
+  sendRelacaoNominalFile(
+    res,
+    buffer,
+    `headcount-report-${new Date().toISOString().slice(0, 10)}.xlsx`,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+});
+

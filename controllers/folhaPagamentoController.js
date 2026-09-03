@@ -540,11 +540,21 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
 // Estatísticas
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const mongoose = require('mongoose');
+  const empresaId = req.user?.empresa_id || req.query?.empresa_id;
+
+  if (!empresaId) {
+    return res.status(200).json({
+      status: 'success',
+      data: { porMes: [], resumoAnual: {} }
+    });
+  }
+
+  const empresaObjId = new mongoose.Types.ObjectId(String(empresaId));
 
   const porMes = await FolhaPagamento.aggregate([
     {
       $match: {
-        empresa_id: mongoose.Types.ObjectId(req.user.empresa_id),
+        empresa_id: empresaObjId,
         status: { $in: ['Processado', 'Fechado'] }
       }
     },
@@ -561,7 +571,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const resumoAnual = await FolhaPagamento.aggregate([
     {
       $match: {
-        empresa_id: mongoose.Types.ObjectId(req.user.empresa_id),
+        empresa_id: empresaObjId,
         ano: new Date().getFullYear(),
         status: { $in: ['Processado', 'Fechado'] }
       }

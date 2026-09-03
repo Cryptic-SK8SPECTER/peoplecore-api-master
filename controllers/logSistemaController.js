@@ -148,7 +148,7 @@ exports.pesquisar = catchAsync(async (req, res, next) => {
 // Estatísticas
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const mongoose = require('mongoose');
-  const empresaId = mongoose.Types.ObjectId(req.user.empresa_id);
+  const empresaId = req.user?.empresa_id ? new mongoose.Types.ObjectId(String(req.user.empresa_id)) : null;
 
   const porModulo = await LogSistema.aggregate([
     { $match: { empresa_id: empresaId } },

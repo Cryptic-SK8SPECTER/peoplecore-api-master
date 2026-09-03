@@ -96,8 +96,20 @@ exports.alterarStatus = catchAsync(async (req, res, next) => {
 
 // Estatísticas de bónus da empresa
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
+  const mongoose = require('mongoose');
+  const empresaId = req.user?.empresa_id || req.query?.empresa_id;
+
+  if (!empresaId) {
+    return res.status(200).json({
+      status: 'success',
+      data: { porTipo: [], porStatus: [], porMes: [] }
+    });
+  }
+
+  const empresaObjId = new mongoose.Types.ObjectId(String(empresaId));
+
   const porTipo = await Bonus.aggregate([
-    { $match: { empresa_id: require('mongoose').Types.ObjectId(req.user.empresa_id) } },
+    { $match: { empresa_id: empresaObjId } },
     {
       $group: {
         _id: '$tipo',
@@ -110,7 +122,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   ]);
 
   const porStatus = await Bonus.aggregate([
-    { $match: { empresa_id: require('mongoose').Types.ObjectId(req.user.empresa_id) } },
+    { $match: { empresa_id: empresaObjId } },
     {
       $group: {
         _id: '$status',
@@ -123,7 +135,7 @@ exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const porMes = await Bonus.aggregate([
     {
       $match: {
-        empresa_id: require('mongoose').Types.ObjectId(req.user.empresa_id),
+        empresa_id: empresaObjId,
         status: { $in: ['Aprovado', 'Pago'] }
       }
     },

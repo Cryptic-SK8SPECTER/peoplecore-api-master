@@ -1,31 +1,41 @@
 const ExcelJS = require('exceljs');
 
 const thin = {
-  top: { style: 'thin', color: { argb: 'FF9CA3AF' } },
-  left: { style: 'thin', color: { argb: 'FF9CA3AF' } },
-  bottom: { style: 'thin', color: { argb: 'FF9CA3AF' } },
-  right: { style: 'thin', color: { argb: 'FF9CA3AF' } },
+  top: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+  left: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+  bottom: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+  right: { style: 'thin', color: { argb: 'FFD1D5DB' } },
 };
 
-const hair = {
-  bottom: { style: 'hair', color: { argb: 'FFE5E7EB' } },
+const peachHeaderFill = {
+  type: 'pattern',
+  pattern: 'solid',
+  fgColor: { argb: 'FFFCE4D6' } // Salmão / pêssego suave como no modelo da Dra. Edma
 };
 
-// Colors defined by requirements:
-// - No change (green): light green fill
-// - Increase (red): light red fill
-// - Reduction (yellow): light yellow fill
+const employeeHeaderFill = {
+  type: 'pattern',
+  pattern: 'solid',
+  fgColor: { argb: 'FFF9FAFB' }
+};
+
+const totalFill = {
+  type: 'pattern',
+  pattern: 'solid',
+  fgColor: { argb: 'FFF2F4F7' }
+};
+
 const colors = {
   green: {
-    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2F0D9' } }, // Light green
+    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2F0D9' } },
     font: { size: 9, bold: true, color: { argb: 'FF385723' } }
   },
   red: {
-    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4D6' } }, // Light red
+    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4D6' } },
     font: { size: 9, bold: true, color: { argb: 'FFC00000' } }
   },
   yellow: {
-    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CC' } }, // Light yellow
+    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CC' } },
     font: { size: 9, bold: true, color: { argb: 'FF7F6000' } }
   }
 };
@@ -35,7 +45,7 @@ async function generateCompanyVarianceExcel(data) {
   workbook.creator = 'PeopleCore';
   workbook.created = new Date();
 
-  const ws = workbook.addWorksheet('Comparativo por Rubrica', {
+  const ws = workbook.addWorksheet('Variance Report', {
     pageSetup: {
       orientation: 'landscape',
       fitToPage: true,
@@ -43,124 +53,141 @@ async function generateCompanyVarianceExcel(data) {
       fitToHeight: 0,
       paperSize: 9,
     },
+    views: [{ showGridLines: true }]
   });
 
-  // Column widths
-  const widths = [10, 25, 24, 16, 16, 16, 14, 20];
+  // Largura das colunas conforme Imagens 1 e 2
+  // A: Descrição (Rubrica / Código Func)
+  // B: Código rúbrica salarial
+  // C: Nome
+  // D: Mês Anterior
+  // E: Mês Atual
+  // F: Diferença
+  // G: Variance Report (Observação)
+  const widths = [38, 22, 32, 18, 18, 18, 30];
   widths.forEach((w, i) => {
     ws.getColumn(i + 1).width = w;
   });
 
-  // Title
-  ws.getRow(1).height = 26;
-  ws.mergeCells('A1:H1');
-  ws.getCell('A1').value = data.titulo || 'Relatório Comparativo Salarial (Company Variance)';
-  ws.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FF1E293B' } };
+  const mesAnterior = data.periodo_referencia?.mes || 'Mês Anterior';
+  const mesAtual = data.periodo_selecionado?.mes || 'Mês Atual';
+  const tituloVariance = `Variance Report (${mesAnterior} para ${mesAtual})`;
+
+  // Linha 1: Título e Identificação da Empresa
+  ws.getRow(1).height = 24;
+  ws.mergeCells('A1:C1');
+  ws.getCell('A1').value = `${data.empresa?.nome || 'PeopleCore'} - Variance Report`;
+  ws.getCell('A1').font = { bold: true, size: 12, color: { argb: 'FF1F2937' } };
   ws.getCell('A1').alignment = { vertical: 'middle' };
 
-  // Company Details
-  ws.getRow(2).height = 18;
-  ws.mergeCells('A2:H2');
-  ws.getCell('A2').value = `${data.empresa?.nome || ''}  |  NIF: ${data.empresa?.nif || ''}  |  Endereço: ${data.empresa?.endereco || ''}`;
-  ws.getCell('A2').font = { size: 9, color: { argb: 'FF475569' } };
-  ws.getCell('A2').alignment = { vertical: 'middle' };
+  ws.mergeCells('D1:G1');
+  ws.getCell('D1').value = `Período: ${mesAnterior}/${data.periodo_referencia?.ano} vs ${mesAtual}/${data.periodo_selecionado?.ano} | Moeda: MT`;
+  ws.getCell('D1').font = { size: 9.5, italic: true, color: { argb: 'FF4B5563' } };
+  ws.getCell('D1').alignment = { horizontal: 'right', vertical: 'middle' };
 
-  // Period / Date
-  ws.getRow(3).height = 18;
-  ws.mergeCells('A3:E3');
-  ws.getCell('A3').value = `Período Analisado: ${data.periodo_selecionado?.mes}/${data.periodo_selecionado?.ano} vs ${data.periodo_referencia?.mes}/${data.periodo_referencia?.ano}`;
-  ws.getCell('A3').font = { bold: true, size: 10, color: { argb: 'FF334155' } };
-  ws.getCell('A3').alignment = { vertical: 'middle' };
+  // Linha 2: Cabeçalhos Principais (Estilo Imagem da Dra. Edma)
+  const headerRow = 2;
+  ws.getRow(headerRow).height = 26;
 
-  ws.mergeCells('F3:H3');
-  ws.getCell('F3').value = `Emissão: ${data.data_emissao || ''}`;
-  ws.getCell('F3').font = { size: 9, color: { argb: 'FF64748B' } };
-  ws.getCell('F3').alignment = { horizontal: 'right', vertical: 'middle' };
-
-  // Table Headers
-  const headerRow = 6;
   const headers = [
-    'Código',
-    'Nome do Colaborador',
-    'Rubrica de Payroll',
-    'Mês Passado',
-    'Mês Atual',
+    'Descrição',
+    'Código rúbrica salarial',
+    'Nome',
+    mesAnterior,
+    mesAtual,
     'Diferença',
-    'Variação %',
-    'Estado / Impacto'
+    tituloVariance
   ];
 
-  headers.forEach((h, i) => {
-    const cell = ws.getCell(headerRow, i + 1);
+  headers.forEach((h, idx) => {
+    const cell = ws.getCell(headerRow, idx + 1);
     cell.value = h;
-    cell.font = { bold: true, size: 9.5, color: { argb: 'FF1E293B' } };
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FFF1F5F9' },
-    };
+    cell.font = { bold: true, size: 9.5, color: { argb: 'FF111827' } };
+    cell.fill = peachHeaderFill;
     cell.border = thin;
     cell.alignment = {
-      horizontal: i >= 3 && i <= 6 ? 'right' : 'left',
+      horizontal: idx >= 3 && idx <= 5 ? 'right' : (idx === 1 ? 'center' : 'left'),
       vertical: 'middle',
     };
   });
-  ws.getRow(headerRow).height = 24;
 
-  let rowIdx = headerRow + 1;
+  // Linha 3: Sub-indicação "Pagamentos em: MT"
+  const subRow = 3;
+  ws.getRow(subRow).height = 18;
+  ws.getCell('A3').value = 'Pagamentos em: MT';
+  ws.getCell('A3').font = { bold: true, size: 8.5, color: { argb: 'FF374151' } };
+  ws.getCell('A3').border = thin;
+  for (let c = 2; c <= 7; c++) {
+    ws.getCell(subRow, c).border = thin;
+  }
+
+  let rowIdx = 4;
 
   (data.linhas || []).forEach((linha) => {
-    const rubricasAtivas = (linha.rubricas || []).filter(r => r.prev !== 0 || r.curr !== 0);
+    // Rubricas com valores ou rubricas padrão oficiais
+    const rubricasList = (linha.rubricas || []).filter(r => r.prev !== 0 || r.curr !== 0 || r.codigo === 'TOT');
 
-    rubricasAtivas.forEach((r, subIdx) => {
-      // Exibir código e nome do colaborador apenas na primeira linha dele para ficar mais legível
-      const isFirst = subIdx === 0;
-      
-      const values = [
-        isFirst ? linha.codigo_interno : '',
-        isFirst ? linha.nome : '',
-        r.rubrica,
-        r.prev || null,
-        r.curr || null,
-        r.diff,
-        r.prev > 0 ? r.pct / 100 : (r.curr > 0 ? 1 : 0),
-        r.alert === 'green' ? 'Sem Alteração' : (r.alert === 'red' ? 'Subida de Custo' : 'Redução de Custo')
-      ];
+    if (rubricasList.length === 0) return;
 
-      ws.getRow(rowIdx).height = 18;
+    rubricasList.forEach((r) => {
+      ws.getRow(rowIdx).height = 19;
 
-      values.forEach((v, colIdx) => {
-        const cell = ws.getCell(rowIdx, colIdx + 1);
-        cell.value = v;
-        cell.font = { size: 9 };
-        
-        // Hair border between rows, thin border to separate employee blocks
-        cell.border = {
-          bottom: isFirst && subIdx === rubricasAtivas.length - 1 ? { style: 'thin', color: { argb: 'FFcbd5e1' } } : hair.bottom
-        };
+      const isTotal = r.codigo === 'TOT' || r.descricao === 'Total Funcionário';
 
-        if (colIdx === 3 || colIdx === 4 || colIdx === 5) {
-          cell.numFmt = '#,##0.00';
-          cell.alignment = { horizontal: 'right' };
+      const cellDesc = ws.getCell(rowIdx, 1);
+      cellDesc.value = r.descricao;
+      cellDesc.font = isTotal ? { size: 9, bold: true } : { size: 9 };
+      cellDesc.border = thin;
+
+      const cellCod = ws.getCell(rowIdx, 2);
+      cellCod.value = isTotal ? '' : (r.codigo || '');
+      cellCod.font = { size: 9, bold: isTotal };
+      cellCod.alignment = { horizontal: 'center' };
+      cellCod.border = thin;
+
+      const cellNome = ws.getCell(rowIdx, 3);
+      cellNome.value = linha.nome || '';
+      cellNome.font = { size: 9 };
+      cellNome.border = thin;
+
+      const cellPrev = ws.getCell(rowIdx, 4);
+      cellPrev.value = r.prev !== 0 ? r.prev : null;
+      cellPrev.font = isTotal ? { size: 9, bold: true } : { size: 9 };
+      cellPrev.numFmt = '#,##0.00';
+      cellPrev.alignment = { horizontal: 'right' };
+      cellPrev.border = thin;
+
+      const cellCurr = ws.getCell(rowIdx, 5);
+      cellCurr.value = r.curr !== 0 ? r.curr : null;
+      cellCurr.font = isTotal ? { size: 9, bold: true } : { size: 9 };
+      cellCurr.numFmt = '#,##0.00';
+      cellCurr.alignment = { horizontal: 'right' };
+      cellCurr.border = thin;
+
+      const cellDiff = ws.getCell(rowIdx, 6);
+      cellDiff.value = r.diff !== 0 ? r.diff : 0;
+      cellDiff.font = isTotal ? { size: 9, bold: true } : { size: 9 };
+      cellDiff.numFmt = '#,##0.00';
+      cellDiff.alignment = { horizontal: 'right' };
+      cellDiff.border = thin;
+
+      const cellObs = ws.getCell(rowIdx, 7);
+      cellObs.value = r.observacao || (r.diff === 0 ? 'Manteve' : (r.diff > 0 ? 'Aumento' : 'Redução'));
+      cellObs.font = { size: 9 };
+      cellObs.border = thin;
+
+      if (isTotal) {
+        for (let c = 1; c <= 7; c++) {
+          ws.getCell(rowIdx, c).fill = totalFill;
         }
-
-        if (colIdx === 6) {
-          cell.numFmt = '0.0%';
-          cell.alignment = { horizontal: 'right' };
-        }
-
-        // Apply background colors based on alert state to cells in diff, % and alert columns
-        if (colIdx >= 5) {
-          const style = colors[r.alert];
-          if (style) {
-            cell.fill = style.fill;
-            cell.font = style.font;
-          }
-        }
-      });
+      }
 
       rowIdx += 1;
     });
+
+    // Linha vazia separadora entre colaboradores
+    ws.getRow(rowIdx).height = 8;
+    rowIdx += 1;
   });
 
   const buffer = await workbook.xlsx.writeBuffer();

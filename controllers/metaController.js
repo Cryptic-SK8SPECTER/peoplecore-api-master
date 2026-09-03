@@ -139,15 +139,25 @@ exports.cancelarMeta = catchAsync(async (req, res, next) => {
 // Estatísticas
 exports.getEstatisticas = catchAsync(async (req, res, next) => {
   const mongoose = require('mongoose');
+  const empresaId = req.user?.empresa_id || req.query?.empresa_id;
+
+  if (!empresaId) {
+    return res.status(200).json({
+      status: 'success',
+      data: { porStatus: [], porFuncionario: [] }
+    });
+  }
+
+  const empresaObjId = new mongoose.Types.ObjectId(String(empresaId));
 
   const porStatus = await Meta.aggregate([
-    { $match: { empresa_id: mongoose.Types.ObjectId(req.user.empresa_id) } },
+    { $match: { empresa_id: empresaObjId } },
     { $group: { _id: '$status', count: { $sum: 1 }, mediaProgresso: { $avg: '$progresso' } } },
     { $sort: { count: -1 } }
   ]);
 
   const porFuncionario = await Meta.aggregate([
-    { $match: { empresa_id: mongoose.Types.ObjectId(req.user.empresa_id) } },
+    { $match: { empresa_id: empresaObjId } },
     {
       $group: {
         _id: '$funcionario_id',

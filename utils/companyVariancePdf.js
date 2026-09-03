@@ -110,7 +110,8 @@ function drawRubricRow(doc, r, x, y) {
   doc.moveTo(x, y + 14).lineTo(x + 732, y + 14).stroke();
 
   doc.font('Helvetica').fontSize(7.5).fillColor('#334155');
-  doc.text(r.rubrica, x + 10, y + 3);
+  const labelRubrica = r.codigo && r.codigo !== 'TOT' ? `${r.codigo} - ${r.descricao || r.rubrica}` : (r.descricao || r.rubrica);
+  doc.text(labelRubrica, x + 10, y + 3, { width: 195 });
   
   doc.text(r.prev > 0 ? fmtMoney(r.prev) : '-', x + 210, y + 3, { width: 100, align: 'right' });
   doc.text(r.curr > 0 ? fmtMoney(r.curr) : '-', x + 320, y + 3, { width: 100, align: 'right' });
@@ -127,7 +128,7 @@ function drawRubricRow(doc, r, x, y) {
   if (style) {
     doc.fillColor(style.bg).rect(x + 630, y + 1.5, 92, 11).fill();
     doc.fillColor(style.text).font('Helvetica-Bold').fontSize(6.5);
-    doc.text(style.label, x + 635, y + 3.5);
+    doc.text(r.observacao || style.label, x + 635, y + 3.5);
   }
 }
 
